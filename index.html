@@ -30,7 +30,7 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.5 (앱 안 QR 스캔 + 구글 시트 버튼)
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.6 (QR 스캔·구글 시트 큰 버튼 줄)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
@@ -173,49 +173,53 @@ function mount(html){
   addSheetLink();
 }
 
-/* ---------- 윗줄 버튼: QR 스캔 · 구글 시트 ----------
-   로그인한 뒤 윗줄의 '작업자 이름 · 권한' 표시 옆에 'QR 스캔'(흰색)과 '구글 시트'(초록) 버튼을 붙입니다.
-   화면이 다시 그려져도 1초마다 확인해서 버튼이 사라지면 다시 붙입니다.
+/* ---------- 윗줄 아래 큰 버튼 두 개: QR 스캔 · 구글 시트 ----------
+   기존 '작업자 이름 · 권한 / 작업자 변경·나가기' 줄은 그대로 두고, 그 바로 아래에
+   반반 나눈 큰 버튼 줄을 하나 붙입니다(손가락으로 누르기 편한 높이 52px).
+   화면이 다시 그려져도 1초마다 확인해서 사라지면 다시 붙입니다.
    시트는 구글 공유 권한이 있는 계정으로만 열립니다(앱 비밀번호와 별개). */
+const ICON_CAM = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="4" height="4" rx=".5"/><rect x="13" y="7" width="4" height="4" rx=".5"/><rect x="7" y="13" width="4" height="4" rx=".5"/><path d="M13 13h4v4"/></svg>';
+const ICON_SHEET = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 9v12"/></svg>';
 function addSheetLink(){
   const css = document.createElement('style');
   css.textContent =
-    '.ac-top{display:inline-flex;align-items:center;gap:5px;box-sizing:border-box;margin-left:8px;' +
-    'padding:8px 13px;border-radius:10px;font:700 14px/1.2 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;' +
-    'text-decoration:none !important;white-space:nowrap;vertical-align:middle;box-shadow:0 2px 8px rgba(0,0,0,.25);' +
-    'flex:0 0 auto;cursor:pointer;-webkit-tap-highlight-color:transparent}' +
-    '.ac-top:active{transform:scale(.97)}' +
-    '#sheet-inline{margin-right:8px;background:#16a34a;color:#fff !important;border:1px solid #4ade80}#sheet-inline:hover{background:#15803d}' +
-    '#qr-inline{background:#fff;color:#14532d !important;border:1px solid #fff}#qr-inline:hover{background:#ecfdf5}' +
-    '@media (max-width:520px){.ac-top{padding:8px 10px;margin-left:6px}.ac-top .long{display:none}}';
+    '#ac-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;box-sizing:border-box;width:100%;flex:0 0 100%;' +
+    'margin:14px 0 2px;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif}' +
+    '#ac-actions .ac-btn{display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;height:52px;' +
+    'padding:0 10px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:-.01em;text-decoration:none !important;' +
+    'white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:transform .08s,filter .15s}' +
+    '#ac-actions .ac-btn:active{transform:scale(.97);filter:brightness(.95)}' +
+    '#ac-qr{background:#d4e8b6;color:#17302a !important;border:1px solid #d4e8b6}' +
+    '#ac-sheet{background:#2a433c;color:#fff !important;border:1px solid rgba(255,255,255,.28)}';
   document.head.appendChild(css);
 
   function visible(el){ return !!(el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden'); }
   function findAnchor(){
     return Array.from(document.querySelectorAll('button, a')).find(b =>
-      !b.classList.contains('ac-top') && /작업자\s*변경|나가기|로그아웃/.test((b.textContent || '') + ' ' + (b.title || '')) && visible(b));
+      !b.closest('#ac-actions') && /작업자\s*변경|나가기|로그아웃/.test((b.textContent || '') + ' ' + (b.title || '')) && visible(b));
+  }
+  function build(){
+    const row = document.createElement('div');
+    row.id = 'ac-actions';
+    row.innerHTML =
+      '<button type="button" class="ac-btn" id="ac-qr">' + ICON_CAM + '<span>QR 스캔</span></button>' +
+      '<a class="ac-btn" id="ac-sheet" target="_blank" rel="noopener">' + ICON_SHEET + '<span>구글 시트</span></a>';
+    row.querySelector('#ac-sheet').href = SHEET_URL;
+    row.querySelector('#ac-qr').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openScanner(); });
+    return row;
   }
   function tick(){
     if (visible(document.getElementById('company-login'))) return;   // 로그인 화면에서는 안 붙임
-    if (document.getElementById('sheet-inline') && document.getElementById('qr-inline')) return;
+    if (document.getElementById('ac-actions')) return;
     const anchor = findAnchor();
     if (!anchor) return;
-    if (!document.getElementById('qr-inline')){
-      const qr = document.createElement('button');
-      qr.type = 'button'; qr.id = 'qr-inline'; qr.className = 'ac-top';
-      qr.setAttribute('aria-label', 'QR 스캔');
-      qr.innerHTML = '📷 QR<span class="long"> 스캔</span>';
-      qr.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openScanner(); });
-      anchor.insertAdjacentElement('beforebegin', qr);
-    }
-    if (!document.getElementById('sheet-inline')){
-      const link = document.createElement('a');
-      link.id = 'sheet-inline'; link.className = 'ac-top';
-      link.href = SHEET_URL; link.target = '_blank'; link.rel = 'noopener';
-      link.setAttribute('aria-label', '구글 시트 열기');
-      link.innerHTML = '📊<span class="long"> 구글</span> 시트';
-      anchor.insertAdjacentElement('beforebegin', link);
-    }
+    const rowParent = anchor.parentElement;
+    const row = build();
+    // 이름·나가기 줄이 따로 묶여 있으면 그 줄 바로 아래에, 제목과 한 덩어리면 그 덩어리 맨 끝에 붙임
+    if (rowParent && rowParent !== document.body && !/ARCHICELL/i.test(rowParent.textContent || ''))
+      rowParent.insertAdjacentElement('afterend', row);
+    else
+      (rowParent || document.body).appendChild(row);
   }
   tick();
   setInterval(tick, 1000);
