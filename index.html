@@ -30,12 +30,14 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.1
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.2 (구글 시트 바로가기 추가)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
    - EXEC: Apps Script 웹 앱 배포 주소. 배포 주소가 바뀌면 여기만 고치세요. */
 const EXEC = 'https://script.google.com/macros/s/AKfycbwLamzbESFWRVE5P2pFoyzTMJtlKZx8AIaqvtkhViLC0TYYRrpjkwELWfTEOWKot0t5/exec';
+/* SHEET_URL: 재고 구글 스프레드시트 주소. 시트 주소가 바뀌면 여기만 고치세요. */
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sr07IV6u6bHeUBwqmlZ78GWOMUPrjnD87KbCRMIBJ6A/edit?gid=1108161337#gid=1108161337';
 const AUTH_KEY = 'achicell-company-auth';
 const COOKIE = 'ac_auth';
 const diag = {ls:false, idb:false, cookie:false, restoredFrom:'', hadAuth:false,
@@ -168,6 +170,57 @@ function mount(html){
   document.dispatchEvent(new Event('DOMContentLoaded', {bubbles:true}));
   window.dispatchEvent(new Event('load'));
   showDiag();
+  addSheetLink();
+}
+
+/* ---------- 구글 시트 바로가기 ----------
+   로그인한 뒤에만 보입니다. '작업자 변경 / 나가기' 버튼을 찾으면 그 옆에 같은 모양으로 붙이고,
+   못 찾으면 오른쪽 아래에 동그란 버튼으로 띄웁니다.
+   시트는 구글 공유 권한이 있는 계정으로만 열립니다(앱 비밀번호와 별개). */
+function addSheetLink(){
+  const css = document.createElement('style');
+  css.textContent =
+    '#sheet-fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:9999;' +
+    'display:flex;align-items:center;gap:6px;padding:11px 15px;border-radius:999px;background:#0f9d58;color:#fff;' +
+    'font:700 14px/1 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;text-decoration:none;' +
+    'box-shadow:0 4px 14px rgba(0,0,0,.35)}' +
+    '#sheet-fab:active{transform:scale(.96)}' +
+    '#sheet-inline{display:inline-flex;align-items:center;justify-content:center;gap:4px;text-decoration:none}';
+  document.head.appendChild(css);
+
+  const fab = document.createElement('a');
+  fab.id = 'sheet-fab';
+  fab.href = SHEET_URL; fab.target = '_blank'; fab.rel = 'noopener';
+  fab.setAttribute('aria-label', '구글 시트 열기');
+  fab.textContent = '📊 시트';
+  fab.hidden = true;
+  document.body.appendChild(fab);
+
+  function visible(el){ return !!(el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden'); }
+  function findExit(){
+    return Array.from(document.querySelectorAll('button, a')).find(b =>
+      b.id !== 'sheet-inline' && b.id !== 'sheet-fab' && /작업자\s*변경|나가기|로그아웃/.test(b.textContent || '') && visible(b));
+  }
+  function tick(){
+    const loggedOut = visible(document.getElementById('company-login'));
+    let inline = document.getElementById('sheet-inline');
+    if (!inline && !loggedOut){
+      const exit = findExit();
+      if (exit){
+        inline = document.createElement('a');
+        inline.id = 'sheet-inline';
+        inline.className = exit.className;           // 기존 버튼과 같은 모양
+        inline.href = SHEET_URL; inline.target = '_blank'; inline.rel = 'noopener';
+        inline.textContent = '📊 구글 시트';
+        exit.insertAdjacentElement('beforebegin', inline);
+        exit.insertAdjacentText('beforebegin', ' ');
+      }
+    }
+    const inlineShown = visible(inline);
+    fab.hidden = loggedOut || inlineShown;
+  }
+  tick();
+  setInterval(tick, 1000);
 }
 /* 로그인 화면이 다시 보일 때만 맨 아래에 원인 한 줄 표시 */
 function showDiag(){
