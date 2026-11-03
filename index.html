@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ARCHICELL 재고</title>
+<meta name="theme-color" content="#19332e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARCHICELL 재고">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  html,body{margin:0;height:100%;background:#19332e;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif}
+  .boot{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;box-sizing:border-box}
+  .boot b{letter-spacing:.14em;font-size:20px}
+  .boot small{color:#aebfb4;font-size:12px}
+  .spin{width:28px;height:28px;border:3px solid #ffffff33;border-top-color:#b9cf9e;border-radius:50%;animation:s 0.9s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  button{font:inherit;margin-top:8px;padding:12px 22px;border-radius:10px;border:0;background:#b9cf9e;color:#19332e;font-weight:700}
+</style>
+</head>
+<body>
+<div class="boot" id="boot">
+  <b>ARCHICELL</b>
+  <div class="spin" id="spin"></div>
+  <small id="boot-msg">재고 화면을 불러오는 중…</small>
+  <button id="retry" hidden onclick="location.reload()">다시 시도</button>
+</div>
+<script>
+/* ARCHICELL 재고관리 앱 껍데기 v2.9
+   - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
+   - 그래서 자동 접속 정보가 이 주소(회사 전용 주소)에 저장되어 사파리에서도 유지됩니다.
+   - 아래 EXEC 주소는 Apps Script 웹 앱 배포 주소입니다. 배포 주소가 바뀌면 여기만 고치세요. */
+const EXEC = 'https://script.google.com/macros/s/AKfycbwLamzbESFWRVE5P2pFoyzTMJtlKZx8AIaqvtkhViLC0TYYRrpjkwELWfTEOWKot0t5/exec';
+
+/* google.script.run 대체: 같은 사용법으로 서버(doPost)에 요청을 보냅니다. */
+const SHIM = `<script>(function(){
+  var EXEC=${JSON.stringify(EXEC)};
+  function call(fn,args,ok,fail){
+    fetch(EXEC,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:fn,args:args})})
+      .then(function(r){if(!r.ok)throw new Error('서버 응답 오류 ('+r.status+')');return r.json();})
+      .then(function(d){if(d&&d.ok){ok&&ok(d.result);}else{var e=new Error((d&&d.error)||'알 수 없는 오류');fail?fail(e):console.error(e);}})
+      .catch(function(err){var e=new Error('네트워크 연결을 확인하세요. '+(err&&err.message||''));fail?fail(e):console.error(e);});
+  }
+  function runner(ok,fail){
+    return new Proxy({},{get:function(_,name){
+      if(name==='withSuccessHandler')return function(f){return runner(f,fail);};
+      if(name==='withFailureHandler')return function(f){return runner(ok,f);};
+      if(name==='withUserObject')return function(){return runner(ok,fail);};
+      return function(){call(String(name),Array.prototype.slice.call(arguments),ok,fail);};
+    }});
+  }
+  window.google=window.google||{};
+  window.google.script={run:runner(null,null),host:{close:function(){}}};
+})();<\/script>`;
+
+const HEAD_TAGS = [
+  '<meta name="theme-color" content="#19332e">',
+  '<meta name="apple-mobile-web-app-capable" content="yes">',
+  '<meta name="mobile-web-app-capable" content="yes">',
+  '<meta name="apple-mobile-web-app-title" content="ARCHICELL 재고">',
+  '<link rel="manifest" href="manifest.webmanifest">',
+  '<link rel="apple-touch-icon" href="icon-180.png">',
+  '<link rel="icon" href="icon-192.png">'
+].join('');
+
+function fail(text){
+  document.getElementById('spin').hidden = true;
+  document.getElementById('boot-msg').textContent = text;
+  document.getElementById('retry').hidden = false;
+}
+
+(async function boot(){
+  const p = new URLSearchParams(location.search);
+  const q = new URLSearchParams({format:'app'});
+  const sku = (p.get('sku')||'').slice(0,40), action = p.get('action')||'';
+  if (sku) q.set('sku', sku);
+  if (action==='in' || action==='out') q.set('action', action);
+  let html;
+  try {
+    const r = await fetch(EXEC + '?' + q.toString(), {redirect:'follow', cache:'no-store'});
+    if (!r.ok) throw new Error('응답 ' + r.status);
+    html = await r.text();
+    if (!/id=["']company-login["']/.test(html)) throw new Error('화면 형식이 다릅니다');
+  } catch (e) {
+    fail('재고 화면을 불러오지 못했습니다. 인터넷 연결을 확인하세요. (' + e.message + ')');
+    return;
+  }
+  // Apps Script 화면의 <base target="_top">은 이 주소에서는 필요 없어 제거합니다.
+  html = html.replace(/<base\s+target=["']_top["']\s*\/?>/i, '');
+  html = html.replace(/<head([^>]*)>/i, m => m + HEAD_TAGS + SHIM);
+  document.open();
+  document.write(html);
+  document.close();
+})();
+</script>
+</body>
+</html>
