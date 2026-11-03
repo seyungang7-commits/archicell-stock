@@ -30,7 +30,7 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.2 (구글 시트 바로가기 추가)
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.3 (구글 시트 바로가기 상단 고정)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
@@ -173,54 +173,48 @@ function mount(html){
   addSheetLink();
 }
 
-/* ---------- 구글 시트 바로가기 ----------
-   로그인한 뒤에만 보입니다. '작업자 변경 / 나가기' 버튼을 찾으면 그 옆에 같은 모양으로 붙이고,
-   못 찾으면 오른쪽 아래에 동그란 버튼으로 띄웁니다.
+/* ---------- 구글 시트 바로가기 (상단 고정 바) ----------
+   화면 맨 위에 얇은 바를 두고 오른쪽에 '구글 시트 열기' 버튼을 항상 보여줍니다.
+   스크롤해도 위에 붙어 있고, 로그인 전후 어느 화면에서도 누를 수 있습니다.
+   앱 화면에 맨 위에 고정된 부분이 있으면 바 높이만큼 아래로 내려 겹치지 않게 합니다.
    시트는 구글 공유 권한이 있는 계정으로만 열립니다(앱 비밀번호와 별개). */
 function addSheetLink(){
   const css = document.createElement('style');
   css.textContent =
-    '#sheet-fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:9999;' +
-    'display:flex;align-items:center;gap:6px;padding:11px 15px;border-radius:999px;background:#0f9d58;color:#fff;' +
-    'font:700 14px/1 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;text-decoration:none;' +
-    'box-shadow:0 4px 14px rgba(0,0,0,.35)}' +
-    '#sheet-fab:active{transform:scale(.96)}' +
-    '#sheet-inline{display:inline-flex;align-items:center;justify-content:center;gap:4px;text-decoration:none}';
+    '#sheet-bar{position:sticky;top:0;z-index:99999;box-sizing:border-box;width:100%;' +
+    'display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+    'padding:calc(env(safe-area-inset-top,0px) + 6px) 12px 6px;background:#000;border-bottom:1px solid #222;' +
+    'font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif}' +
+    '#sheet-bar .brand{color:#9a9a9a;font-size:12px;font-weight:700;letter-spacing:.08em}' +
+    '#sheet-bar a{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;' +
+    'background:#0f9d58;color:#fff;font-size:13px;font-weight:700;line-height:1;text-decoration:none;white-space:nowrap}' +
+    '#sheet-bar a:active{opacity:.8}';
   document.head.appendChild(css);
 
-  const fab = document.createElement('a');
-  fab.id = 'sheet-fab';
-  fab.href = SHEET_URL; fab.target = '_blank'; fab.rel = 'noopener';
-  fab.setAttribute('aria-label', '구글 시트 열기');
-  fab.textContent = '📊 시트';
-  fab.hidden = true;
-  document.body.appendChild(fab);
+  const bar = document.createElement('div');
+  bar.id = 'sheet-bar';
+  bar.innerHTML = '<span class="brand">ARCHICELL</span>' +
+    '<a target="_blank" rel="noopener" aria-label="구글 시트 열기">📊 구글 시트 열기</a>';
+  bar.querySelector('a').href = SHEET_URL;
+  document.body.insertBefore(bar, document.body.firstChild);
 
-  function visible(el){ return !!(el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden'); }
-  function findExit(){
-    return Array.from(document.querySelectorAll('button, a')).find(b =>
-      b.id !== 'sheet-inline' && b.id !== 'sheet-fab' && /작업자\s*변경|나가기|로그아웃/.test(b.textContent || '') && visible(b));
+  /* 앱 화면에서 맨 위에 고정된 요소가 바에 가려지지 않도록 바 높이만큼 내림 */
+  function shiftFixed(){
+    const h = bar.offsetHeight;
+    document.querySelectorAll('body *').forEach(el => {
+      if (el === bar || bar.contains(el)) return;
+      const cs = getComputedStyle(el);
+      if (cs.position !== 'fixed' && cs.position !== 'sticky') return;
+      if (el.dataset.sheetShift === String(h)) return;
+      const base = el.dataset.sheetBase !== undefined ? parseFloat(el.dataset.sheetBase) : parseFloat(cs.top);
+      if (isNaN(base) || base > 2) return;        // 맨 위(top 0)에 붙은 것만
+      el.dataset.sheetBase = String(base);
+      el.dataset.sheetShift = String(h);
+      el.style.top = (base + h) + 'px';
+    });
   }
-  function tick(){
-    const loggedOut = visible(document.getElementById('company-login'));
-    let inline = document.getElementById('sheet-inline');
-    if (!inline && !loggedOut){
-      const exit = findExit();
-      if (exit){
-        inline = document.createElement('a');
-        inline.id = 'sheet-inline';
-        inline.className = exit.className;           // 기존 버튼과 같은 모양
-        inline.href = SHEET_URL; inline.target = '_blank'; inline.rel = 'noopener';
-        inline.textContent = '📊 구글 시트';
-        exit.insertAdjacentElement('beforebegin', inline);
-        exit.insertAdjacentText('beforebegin', ' ');
-      }
-    }
-    const inlineShown = visible(inline);
-    fab.hidden = loggedOut || inlineShown;
-  }
-  tick();
-  setInterval(tick, 1000);
+  shiftFixed();
+  setInterval(shiftFixed, 1000);
 }
 /* 로그인 화면이 다시 보일 때만 맨 아래에 원인 한 줄 표시 */
 function showDiag(){
