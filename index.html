@@ -12,6 +12,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbit&display=swap">
 <style data-shell>
   /* 시작 화면 v3.0: 큰 흰색 로고 · 시스템 이름 · 진행 막대 */
   html,body{margin:0;height:100%;background:#0b0c0e;color:#fff;font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;-webkit-font-smoothing:antialiased}
@@ -19,11 +20,11 @@
     padding:calc(env(safe-area-inset-top,0px) + 24px) 24px calc(env(safe-area-inset-bottom,0px) + 24px);
     background:radial-gradient(120% 70% at 50% 38%,#1a1d22 0%,#0b0c0e 62%)}
   .boot-logo{width:min(62vw,280px);height:auto;display:block;animation:bootIn .7s cubic-bezier(.2,.8,.2,1) both}
-  .boot-name{margin-top:22px;font-size:15px;font-weight:600;letter-spacing:.28em;color:#d5d8dd;padding-left:.28em;animation:bootFade .7s .15s both}
+  .boot-name{margin-top:24px;font-family:'Orbit',"Pretendard Variable",-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:19px;font-weight:400;letter-spacing:.12em;padding-left:.12em;color:#e6e8eb;animation:bootFade .7s .15s both}
   .bar{position:relative;width:min(46vw,180px);height:3px;margin-top:34px;border-radius:3px;background:#ffffff1f;overflow:hidden;animation:bootFade .5s .25s both}
   .bar::after{content:"";position:absolute;top:0;bottom:0;left:-40%;width:40%;border-radius:3px;background:linear-gradient(90deg,#ffffff00,#ffffff 50%,#ffffff00);animation:bootRun 1.15s ease-in-out infinite}
   .bar[hidden]{display:none}
-  .boot small{margin-top:16px;color:#9aa0a8;font-size:13px;line-height:1.6;max-width:320px;animation:bootFade .5s .3s both}
+  .boot small{margin-top:16px;font-family:'Orbit',"Pretendard Variable",-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;letter-spacing:.04em;color:#8f959e;font-size:13px;line-height:1.6;max-width:320px;animation:bootFade .5s .3s both}
   .boot button{font:inherit;margin-top:18px;padding:13px 26px;border-radius:10px;border:0;background:#fff;color:#0b0c0e;font-weight:700;font-size:15px}
   @keyframes bootIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
   @keyframes bootFade{from{opacity:0}to{opacity:1}}
@@ -40,7 +41,7 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.7 (시작 화면: 큰 로고·자재관리 통합시스템·진행 막대) · v2.9.6 (QR 스캔·구글 시트 큰 버튼 줄)
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.8 (시작 화면 글자를 로고와 어울리는 Orbit 글꼴로) · v2.9.7 (시작 화면: 큰 로고·자재관리 통합시스템·진행 막대) · v2.9.6 (QR 스캔·구글 시트 큰 버튼 줄)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
