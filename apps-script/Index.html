@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- ARCHICELL Index v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
 <style>
 :root{--ink:#203832;--green:#206851;--green-bg:#eff6f1;--green-line:#cfe3d6;--orange:#a8693a;--orange-bg:#fcf4eb;--orange-line:#ecd6bf;--paper:#f4f3ee;--muted:#758078;--line:#e0e4dc;--red:#a54530}
@@ -250,6 +251,101 @@ body.qs-open{overflow:hidden}
  .qs{align-items:flex-end}
  .qs-box{width:100%;max-height:92%;border-radius:20px 20px 0 0;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 18px)}
 }
+
+/* ===== v3.7 알루미늄 프로파일 톤 (그레이·블랙) — 색만 바꿉니다 ===== */
+:root{--ink:#1b1e21;--green:#2a2f33;--green-bg:#f1f3f4;--green-line:#d5d9dd;--paper:#eceef0;--muted:#626b73;--line:#d9dde1;--red:#b4532a;--accent:#4b7a96;--soft:#f4f5f6;--ph:clamp(88px,26vw,112px)}
+body{background:var(--paper);color:var(--ink)}
+header{background:#1b1e21!important;border-bottom:3px solid #9aa2a8!important}
+.brand-dot{background:#aab2b8!important}
+header small{color:#aab2b8}
+#identity{color:#e8ebed;border-color:#ffffff30}
+nav{background:#dfe2e5!important}
+nav button{color:#5f6870}
+nav button.active{background:#fff;color:#1b1e21!important;box-shadow:0 1px 4px #1b1e2120}
+#ac-sheet{background:#363b3f!important}
+.status button{background:#fff;border-color:var(--line)}
+.card{border-color:var(--line);box-shadow:0 2px 10px #1b1e2108}
+.message{background:#eef1f3;border-color:#d9dde1}
+.message.error{background:#fff0e9;border-color:#f0d1c0}
+input,select,textarea{border-color:#cfd4d8}
+button:focus-visible,input:focus,select:focus{outline:3px solid #9fc0d4;outline-offset:2px}
+th{background:#eef0f2}
+.chip{border-color:var(--line);color:#41484e}.chip.on{background:#1b1e21;border-color:#1b1e21}
+.chip.warn{color:#b4532a}.chip.warn.on{background:#b4532a;border-color:#b4532a;color:#fff}
+.srow{border-color:var(--line)}.srow:hover{border-color:#a6aeb4;box-shadow:0 2px 12px #1b1e2112}
+.srow-m{color:#353b40!important}
+.lchip{background:var(--soft);border-color:var(--line);color:#4a5258}.lchip:hover{border-color:#1b1e21}.lchip b{color:#1b1e21}
+.lchip.low{background:#fbefe8;border-color:#f0d3c2;color:#b4532a}.lchip.low b{color:#b4532a}
+.lchip.zero b{color:#b3b8bc}
+.lc{background:var(--soft);border-color:var(--line)}.lc.more{background:#eef0f1;color:#4a5258}
+.len-chip.on{background:#2a2f33;border-color:#2a2f33}
+.category-badge{background:#e8ebed;color:#4a5258}
+.code-chip{background:#eceef0;color:#4a5258}
+.today div{background:var(--soft)}
+.act{border-bottom-color:#e6e8ea}.lowrow{border-bottom-color:#e6e8ea}
+.act-type{background:#eceef0;color:#4a5258}
+.form-sec{color:#1b1e21;border-bottom-color:var(--line)}
+.label-settings button{background:#2a2f33}
+.label-settings .pill{background:#e8ebed;color:#4a5258}
+.qr-operation{background:#e8ebed;color:#2a2f33}
+.qrlabel{border-color:#cfd4d8}
+.ac-toast.ok{background:#2f3a42}.ac-toast.err{background:#a3462a}
+.qs-icon{background:#eceef0;border-color:#eceef0}
+.qs-qty button{background:#eceef0;border-color:#eceef0}
+.qs-result{background:#eceef0;color:#2a2f33}
+.qs-btn.out{background:#1b1e21;border-color:#1b1e21}.qs-btn.in{border-color:#1b1e21;color:#1b1e21}
+.qchip.on{background:#1b1e21;border-color:#1b1e21}
+#company-enter{background:#2a2f33;color:#fff;border-color:#2a2f33;font-weight:750;min-height:50px}
+.sc-photo{background:#e6e9eb;border-color:#d9dde1;color:#9aa3a9}
+.sc-photo img{object-fit:contain;background:#fff}
+
+/* ===== v3.7 큰 사진 (목록·입출고 창) ===== */
+.srow{grid-template-columns:var(--ph) minmax(170px,250px) minmax(0,1fr) 96px}
+.srow .sc-photo{width:var(--ph);height:var(--ph);flex:0 0 var(--ph);border-radius:12px;background:#fff;cursor:zoom-in}
+.qs-head .sc-photo{width:84px;height:84px;flex:0 0 84px;border-radius:12px;background:#fff;cursor:zoom-in}
+.qs-head .sc-photo.editable::after{content:'✎';position:absolute;right:4px;bottom:4px;width:22px;height:22px;border-radius:50%;background:#1b1e21;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;z-index:2}
+.qs-title b{font-size:18px}
+
+/* ===== v3.7 사진 보기·바꾸기 창 ===== */
+.pv{position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center}
+.pv-dim{position:absolute;inset:0;background:#0b0d0ecc}
+.pv-box{position:relative;width:min(720px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:#fff;border-radius:18px;padding:16px;box-shadow:0 20px 60px #0006}
+.pv-head{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.pv-stage{position:relative;background:#e6e9eb;border-radius:12px;height:min(62vh,520px);min-height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.pv-stage img{width:100%;height:100%;object-fit:contain;background:transparent;display:block}
+.ac-toast{width:max-content}
+.pv-empty{position:absolute;color:#6f7981;font-size:14px;text-align:center;padding:0 20px}
+.pv-tag{position:absolute;left:10px;top:10px;background:#1b1e21;color:#fff;font-size:12px;font-weight:700;padding:5px 10px;border-radius:8px}
+.pv-stage.drag{outline:3px dashed var(--accent);outline-offset:-6px}
+.pv-hint{font-size:12px;color:var(--muted);margin:10px 0 12px;min-height:18px}
+.pv-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pv-actions button{min-height:52px;font-weight:700;font-size:15px;border-radius:12px}
+.pv-primary{background:#1b1e21!important;border-color:#1b1e21!important;color:#fff!important}
+.pv-danger{color:#a3462a}
+
+/* ===== v3.7 현황에서 바로 정보 수정 ===== */
+.qe-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qe-grid label,#qe-counts label{margin:0 0 4px;font-size:11px;color:var(--muted);font-weight:650}
+.qe-grid input,#qe-counts input{margin:0;min-height:46px}
+#qs-edit .muted{font-size:12px;margin:8px 0 0}
+#qs-edit details{margin:14px 0 4px;background:var(--soft);border-radius:12px;padding:10px 12px}
+#qs-edit summary{font-size:13px;font-weight:650}
+#qe-counts{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
+#qs-edit .qs-actions{margin-top:14px}
+
+@media(max-width:760px){
+ .srow{grid-template-columns:var(--ph) minmax(0,1fr) auto;align-items:start}
+ .srow .sc-photo{width:var(--ph);height:var(--ph);flex-basis:var(--ph)}
+ .kv2{font-size:13px}.kv2 em{flex-basis:42px}.srow-m{font-size:13px!important}
+ .lchip{min-height:44px;font-size:13px}.lchip b{font-size:18px}
+ .srow-total b{font-size:20px}
+ input,select,textarea{font-size:16px}
+ .qs-head .sc-photo{width:84px;height:84px;flex-basis:84px}
+ .qe-grid{gap:8px}
+ .pv{align-items:flex-end}
+ .pv-box{width:100%;max-height:96%;border-radius:20px 20px 0 0;padding:14px 14px calc(env(safe-area-inset-bottom,0px) + 14px)}
+ .pv-stage{height:min(58vh,440px)}
+}
 </style></head><body>
 <style>
 body:not(.company-ready)>header,body:not(.company-ready)>main{display:none!important}
@@ -384,8 +480,8 @@ body:not(.company-ready)>header,body:not(.company-ready)>main{display:none!impor
 <div id="qs" class="qs hidden" role="dialog" aria-modal="true" aria-labelledby="qs-name">
  <div class="qs-dim" onclick="closeSheet()"></div>
  <div class="qs-box">
-  <div class="qs-head"><span id="qs-photo" class="sc-photo"></span><div class="qs-title"><small id="qs-meta"></small><b id="qs-name"></b></div>
-   <button id="qs-more" class="qs-icon" type="button" onclick="toggleCut()" aria-label="절단 기록" title="절단 기록">⋯</button><button class="qs-icon" type="button" onclick="closeSheet()" aria-label="닫기">✕</button></div>
+  <div class="qs-head"><span id="qs-photo" class="sc-photo" role="button" tabindex="0" title="사진 크게 보기" onclick="openPhoto(sel)"></span><div class="qs-title"><small id="qs-meta"></small><b id="qs-name"></b></div>
+   <button id="qs-editbtn" class="qs-icon hidden" type="button" onclick="toggleEdit()" aria-label="정보 수정" title="정보 수정">✎</button><button id="qs-more" class="qs-icon" type="button" onclick="toggleCut()" aria-label="절단 기록" title="절단 기록">⋯</button><button class="qs-icon" type="button" onclick="closeSheet()" aria-label="닫기">✕</button></div>
   <div id="qs-move">
    <div id="qs-lens-wrap"><div class="qs-label">길이</div><div id="qs-lens" class="qs-lens"></div></div>
    <div class="qs-label">수량</div>
@@ -395,7 +491,42 @@ body:not(.company-ready)>header,body:not(.company-ready)>main{display:none!impor
    <div class="qs-actions"><button id="qs-out" class="qs-btn out" type="button" onclick="sheetCommit('출고')">출고</button><button id="qs-in" class="qs-btn in" type="button" onclick="sheetCommit('입고')">입고</button></div>
   </div>
   <div id="qs-cut" class="hidden"><div class="qs-label">✂ 절단 기록 · 원래 길이 출고 + 잘린 길이 입고</div></div>
+  <div id="qs-edit" class="hidden">
+   <div class="qs-label">✎ 품목 정보 수정 · 저장하면 구글 시트에 바로 반영됩니다</div>
+   <div class="qe-grid">
+    <div><label for="qe-order">M코드</label><input id="qe-order" maxlength="20" autocapitalize="characters" autocomplete="off" placeholder="예: M187"></div>
+    <div><label for="qe-kind">품명(종류)</label><input id="qe-kind" maxlength="30" list="kind-list" autocomplete="off" oninput="qeName()" placeholder="예: 프로파일"></div>
+    <div><label for="qe-size">크기</label><input id="qe-size" maxlength="30" autocomplete="off" oninput="qeName()" placeholder="예: 30x60"></div>
+    <div><label for="qe-color">색상</label><input id="qe-color" maxlength="8" list="color-list" autocomplete="off" oninput="qeName()" placeholder="예: 블랙"></div>
+    <div><label for="qe-spec">두께</label><input id="qe-spec" maxlength="100" autocomplete="off" placeholder="예: 1.8mm"></div>
+    <div><label for="qe-loc">보관 위치</label><input id="qe-loc" maxlength="60" autocomplete="off" placeholder="예: A구역 1번 랙"></div>
+    <div><label for="qe-safety">부족 알림 기준 (이하)</label><input id="qe-safety" type="number" inputmode="numeric" min="0" max="1000000" step="1"></div>
+    <div><label for="qe-memo">비고</label><input id="qe-memo" maxlength="250" autocomplete="off"></div>
+   </div>
+   <p id="qe-name" class="muted"></p>
+   <details><summary>수량 바로잡기 (실제 개수와 다를 때만)</summary><div id="qe-counts"></div><p class="muted">바꾼 수량은 '실사조정'으로 기록에 남습니다. 품목코드 변경은 관리 화면에서 해주세요.</p></details>
+   <div class="qs-actions"><button class="qs-btn in" type="button" onclick="toggleEdit()">취소</button><button id="qe-save" class="qs-btn out" type="button" onclick="saveQuick()">저장</button></div>
+  </div>
   <div id="qs-result" class="qs-result hidden"><span id="qs-result-text"></span><button id="qs-undo" type="button" onclick="undoLast();renderSheet()">되돌리기</button></div>
+ </div>
+</div>
+<div id="pv" class="pv hidden" role="dialog" aria-modal="true" aria-labelledby="pv-name">
+ <div class="pv-dim" onclick="closePhoto()"></div>
+ <div class="pv-box">
+  <div class="pv-head"><div class="qs-title"><small id="pv-meta"></small><b id="pv-name"></b></div><button class="qs-icon" type="button" onclick="closePhoto()" aria-label="닫기">✕</button></div>
+  <div id="pv-stage" class="pv-stage"><img id="pv-img" alt="" class="hidden" referrerpolicy="no-referrer" onerror="pvImgErr(this)"><div id="pv-empty" class="pv-empty">등록된 사진이 없어요</div><div id="pv-tag" class="pv-tag hidden">새 사진 · 아직 저장 전</div></div>
+  <p id="pv-hint" class="pv-hint"></p>
+  <div id="pv-idle" class="pv-actions hidden">
+   <button id="pv-pick" class="pv-primary" type="button" onclick="el('pv-file').click()">사진 선택·촬영</button>
+   <button id="pv-paste" type="button" onclick="pasteFromClipboard()">붙여넣기</button>
+   <button id="pv-url" type="button" onclick="photoByUrl()">주소로 넣기</button>
+   <button id="pv-del" class="pv-danger" type="button" onclick="photoRemove()">사진 지우기</button>
+  </div>
+  <div id="pv-staged" class="pv-actions hidden">
+   <button id="pv-save" class="pv-primary" type="button" onclick="savePhoto()">이 사진으로 저장</button>
+   <button id="pv-cancel" type="button" onclick="cancelStaged()">취소</button>
+  </div>
+  <input id="pv-file" class="hidden" type="file" accept="image/*" onchange="photoPicked(this)">
  </div>
 </div>
 <input id="initial-sku" type="hidden" value="<?= initialSku ?>"><input id="initial-action" type="hidden" value="<?= initialAction ?>">
@@ -418,7 +549,10 @@ function visibleLengths(i){if(!i)return [];const ls=i.lengths&&i.lengths.length?
 function lenStock(i,mm){if(!i)return 0;const l=(i.lengths||[]).find(x=>x.mm===mm);return l?l.stock:(i.hasLength?0:i.stock);}
 function lowLen(i,l){return !!l.stocked&&l.stock<=i.safety;}
 function isLow(i){return visibleLengths(i).some(l=>lowLen(i,l));}
-function photoInner(i){return PHOTO_ICON+(i&&i.photo?'<img src="'+esc(i.photo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">':'');}
+/* v3.7 사진: 구글 드라이브 썸네일 주소는 화면 크기에 맞는 크기(w값)로 바꿔 불러옵니다. 그 밖의 주소는 그대로 씁니다. */
+function photoSrc(u,w){u=String(u||'');return /drive\.google\.com\/thumbnail\?/.test(u)?u.replace(/([?&])sz=[wsh]\d+/,'$1sz=w'+w):u;}
+function photoInner(i,w){return PHOTO_ICON+(i&&i.photo?'<img src="'+esc(photoSrc(i.photo,w||500))+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="photoErr(this)">':'');}
+function photoErr(img){if(!img.dataset.r){img.dataset.r='1';setTimeout(()=>{try{img.src=img.src.replace(/[&?]r=\d+$/,'')+(img.src.includes('?')?'&':'?')+'r='+Date.now();}catch(e){}},1200);}else img.remove();}
 function lenCells(i,limit){
   const ls=visibleLengths(i),u=esc(unitOf(i)),open=expanded.has(i.code);
   const shown=(!limit||open||ls.length<=limit+1)?ls:ls.slice(0,limit);
@@ -626,7 +760,7 @@ function controls(){
   el('reload').disabled=busy||loading;el('retry').disabled=busy;el('retry').textContent=busy?'확인 중…':'같은 요청 재시도';
   el('pending-box').classList.toggle('hidden',!pending||busy);
   if(pending)el('pending-summary').textContent=pending.method+' · '+(pending.payload.code||pending.payload.target)+' · '+(pending.payload.type||'')+' '+(pending.payload.quantity??pending.payload.count??'기록 취소');
-  renderWork();
+  renderWork();renderPv();
 }
 function load(quiet){
   if(!accessToken)return;
@@ -684,7 +818,10 @@ function renderStock(){
   el('stock-chips').querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{stockMode=b.dataset.mode;renderStock();});
   const list=matches(q).filter(i=>stockMode==='all'||(stockMode==='len'&&i.hasLength)||(stockMode==='part'&&!i.hasLength)||(stockMode==='low'&&isLow(i)));
   el('stock-list').innerHTML=list.map(stockRow).join('')||'<p class="empty-state">표시할 품목이 없습니다.</p>';
-  el('stock-list').onclick=ev=>{const c=ev.target.closest('[data-len]');if(c){openSheet(c.dataset.code,Number(c.dataset.len)||null);return;}const r=ev.target.closest('[data-code]');if(r)openSheet(r.dataset.code,null);};
+  el('stock-list').onclick=ev=>{const c=ev.target.closest('[data-len]');if(c){openSheet(c.dataset.code,Number(c.dataset.len)||null);return;}const r=ev.target.closest('[data-code]');if(!r)return;
+    // 사진을 누르면 크게 보기·바꾸기(관리자, 또는 사진이 있을 때). 그 밖의 곳을 누르면 입출고 창.
+    if(ev.target.closest('.sc-photo')){const it=db.items.find(x=>x.code===r.dataset.code);if(it&&(db.user.admin||it.photo)){openPhoto(r.dataset.code);return;}}
+    openSheet(r.dataset.code,null);};
 }
 // [v2.6 변경] 분류/품목별 단위 반영.
 function renderHistory(){if(!db)return;const kind=el('log-type').value,q=el('log-search').value.trim().toLowerCase(),rows=db.recent.filter(r=>(!kind||r.type===kind)&&[r.code,r.name,r.operator,r.memo].join(' ').toLowerCase().includes(q));el('history').innerHTML=rows.length?'<table><thead><tr><th>시각·품목</th><th>처리</th><th>변동 / 직후</th><th>작업자·사유</th><th>취소</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.date)+'<br>'+esc(r.code)+(r.length?' <b>'+r.length+'mm</b>':'')+(r.currentCode&&r.currentCode!==r.code?'<br><small>현재 '+esc(r.currentCode)+'</small>':'')+'</td><td>'+esc(r.type)+(r.canceled?'<br><span class="low">취소됨</span>':'')+(r.type==='실사조정'?'<br>실제 '+fmt(r.quantity)+esc(unitOf(r)):'')+'</td><td>'+(r.delta>0?'+':'')+fmt(r.delta)+esc(unitOf(r))+' / '+fmt(r.stock)+esc(unitOf(r))+'</td><td>'+esc(r.operator)+'<br>'+esc(r.memo)+'</td><td>'+(r.canCancel?'<button data-cancel="'+esc(r.id)+'">취소</button>':'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">조건에 맞는 기록이 없습니다. 최근 100건만 표시합니다.</p>';el('history').querySelectorAll('[data-cancel]').forEach(b=>{b.disabled=frozen();b.onclick=()=>{if(frozen())return;const r=db.recent.find(x=>x.id===b.dataset.cancel);const reason=prompt(r.code+' '+(r.length?r.length+'mm ':'')+r.type+' '+r.quantity+unitOf(r)+(r.type==='절단출고'?' (잘라서 입고된 길이도 함께)':'')+' 기록을 취소합니다.\n취소 사유를 입력하세요.','기록 정정');if(reason&&reason.trim())begin('cancelTransaction',{target:r.id,reason:reason});};});}
@@ -738,8 +875,8 @@ function submitRenameCode(){
 function uploadPhoto(){
   const f=el('item-photo-file').files&&el('item-photo-file').files[0],code=el('edit-sku').value;if(!f||!code||frozen())return;
   const url=URL.createObjectURL(f),img=new Image();msg('사진 줄이는 중…');
-  img.onload=()=>{try{const k=Math.min(1,1200/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
-    const data=c.toDataURL('image/jpeg',0.82).split(',')[1];el('item-photo-file').value='';msg('사진 올리는 중…');simple('uploadPhoto',{code:code,data:data});}catch(e){msg('사진을 처리하지 못했습니다: '+e.message,true);}};
+  img.onload=()=>{try{const r=photoEncode(img);URL.revokeObjectURL(url);
+    const data=r.url.split(',')[1];el('item-photo-file').value='';msg('사진 올리는 중…');simple('uploadPhoto',{code:code,data:data});}catch(e){URL.revokeObjectURL(url);msg('사진을 처리하지 못했습니다: '+e.message,true);}};
   img.onerror=()=>{URL.revokeObjectURL(url);msg('이 사진 형식은 열 수 없습니다. JPG·PNG로 다시 골라주세요.',true);};
   img.src=url;
 }
@@ -765,7 +902,7 @@ document.addEventListener('visibilitychange',()=>{
 document.addEventListener('DOMContentLoaded',()=>{show('stock');buildLanes();const saved=session();if(saved&&['saveTransaction','adjustStock','cancelTransaction','cutStock'].includes(saved.method)&&saved.payload?.requestId)pending=saved;controls();el('company-form').addEventListener('submit',loginCompanySubmit);const a=authSaved();if(a?.name)el('company-name').value=a.name;if(a)el('company-role').value=a.admin?'admin':'staff';if(a?.token)useCompanyAuth(a);else showCompanyLogin('');});
 
 /* ===== v3.1 현황판 · 빠른 입출고 창 ===== */
-let stockMode='all',sheetOpen=false,cutMode=false,shownResultId='';
+let stockMode='all',sheetOpen=false,cutMode=false,shownResultId='',editMode=false,pvOpen=false,pv={code:'',staged:null,err:false};
 function stockRow(i){
   const ls=visibleLengths(i),u=esc(unitOf(i)),low=isLow(i);
   const nm=splitName(i.name);
@@ -810,7 +947,7 @@ function renderSide(){
 }
 function openSheet(code,len){
   if(!db||busy||pending)return;code=canonicalCode(code);const i=db.items.find(x=>x.code===code&&x.active);if(!i)return;
-  sel=code;chosenType='';cutMode=false;closeDirect();result=null;lastTx=null;resetUndo();msg('');
+  sel=code;chosenType='';cutMode=false;editMode=false;closeDirect();result=null;lastTx=null;resetUndo();msg('');
   if(!i.hasLength)chosenLen=0;
   else if(len)chosenLen=len;
   else{const ls=visibleLengths(i),inStock=ls.filter(l=>l.stock>0);chosenLen=(inStock[0]||ls[0]||{}).mm||null;}
@@ -818,21 +955,24 @@ function openSheet(code,len){
   sheetOpen=true;el('qs').classList.remove('hidden');document.body.classList.add('qs-open');
   renderWork();setTimeout(()=>{try{el('qs-n').focus({preventScroll:true});el('qs-n').select();}catch(e){}},60);
 }
-function closeSheet(){if(busy)return;sheetOpen=false;cutMode=false;chosenType='';el('qs').classList.add('hidden');document.body.classList.remove('qs-open');result=null;lastTx=null;renderWork();}
+function closeSheet(){if(busy)return;sheetOpen=false;cutMode=false;editMode=false;chosenType='';el('qs').classList.add('hidden');document.body.classList.remove('qs-open');result=null;lastTx=null;renderWork();}
 function stepQty(d){if(el('global').classList.contains('error'))msg('');const n=Math.max(1,(Number(el('qs-n').value)||0)+d);el('qs-n').value=n;renderSheet();}
-function toggleCut(){const i=current();if(!i||!i.hasLength||frozen())return;cutMode=!cutMode;
+function toggleCut(){const i=current();if(!i||!i.hasLength||frozen())return;cutMode=!cutMode;editMode=false;
   if(cutMode){const cp=el('cut-panel');if(cp.parentNode!==el('qs-cut'))el('qs-cut').appendChild(cp);chosenType='절단';setupCut();}else chosenType='';
   renderWork();}
 function sheetLen(){const i=current();return i&&i.hasLength?chosenLen||0:0;}
 function useSheetNewLen(){const v=Number(el('qs-newlen').value);if(!Number.isSafeInteger(v)||v<1||v>100000){msg('새 길이는 1~100000 사이 숫자(mm)로 입력하세요.',true);return;}chosenLen=v;renderSheet();}
 function renderSheet(){
   if(!sheetOpen)return;const i=current();if(!i){closeSheet();return;}
-  el('qs-photo').innerHTML=photoInner(i);el('qs-name').textContent=i.name;
+  const admin=!!(db&&db.user&&db.user.admin);
+  el('qs-photo').innerHTML=photoInner(i,900);el('qs-photo').classList.toggle('editable',admin);el('qs-name').textContent=i.name;
   el('qs-meta').textContent=[i.orderCode,i.code,i.size].filter(Boolean).join(' · ');
-  el('qs-more').classList.toggle('hidden',!i.hasLength);
-  el('qs-move').classList.toggle('hidden',cutMode);el('qs-cut').classList.toggle('hidden',!cutMode);
+  el('qs-more').classList.toggle('hidden',!i.hasLength||editMode);
+  el('qs-editbtn').classList.toggle('hidden',!admin||cutMode);el('qs-editbtn').textContent=editMode?'↩':'✎';el('qs-editbtn').title=editMode?'입출고로 돌아가기':'정보 수정';
+  el('qs-move').classList.toggle('hidden',cutMode||editMode);el('qs-cut').classList.toggle('hidden',!cutMode);el('qs-edit').classList.toggle('hidden',!editMode);
   el('qs-more').textContent=cutMode?'↩':'⋯';el('qs-more').title=cutMode?'입출고로 돌아가기':'절단 기록';
   const off=frozen()||cooldown,u=unitOf(i);
+  if(editMode)el('qs-edit').querySelectorAll('input,button').forEach(b=>{b.disabled=frozen();});
   el('qs-lens-wrap').classList.toggle('hidden',!i.hasLength);
   if(i.hasLength){
     const ls=visibleLengths(i),known=ls.some(l=>l.mm===chosenLen),typing=document.activeElement&&document.activeElement.id==='qs-newlen';
@@ -870,5 +1010,133 @@ function sheetCommit(type){const i=current();if(!i||frozen()||cooldown)return;co
 // 시트에서 고친 내용이 앱에 바로 보이도록 1분마다 조용히 새로 읽기 (입출고 창이 열려 있거나 저장 중이면 건너뜀)
 setInterval(()=>{if(accessToken&&db&&!document.hidden&&!busy&&!pending&&!loading&&!sheetOpen)load(true);},60000);
 window.addEventListener('focus',()=>{if(accessToken&&db&&!busy&&!pending&&!sheetOpen)load(true);});
-document.addEventListener('keydown',e=>{if(!sheetOpen)return;if(e.key==='Escape')closeSheet();});
+document.addEventListener('keydown',e=>{if(!sheetOpen&&!pvOpen)return;if(e.key==='Escape'){if(pvOpen)closePhoto();else closeSheet();}});
+
+/* ===== v3.7 사진 보기 · 바꾸기 (선택·촬영 / Ctrl+V 붙여넣기 / 끌어놓기 / 주소) ===== */
+/* 사진을 긴 쪽 1600px 이하 JPEG로 줄입니다(원본보다 키우지 않음). 용량이 크면 화질→크기 순으로 낮춰 서버 한도(약 2.5MB)에 맞춥니다. */
+function photoEncode(img){
+  let k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)),q=.9,w=0,h=0,out='';
+  for(let n=0;n<7;n++){
+    const c=document.createElement('canvas');w=Math.max(1,Math.round(img.naturalWidth*k));h=Math.max(1,Math.round(img.naturalHeight*k));c.width=w;c.height=h;
+    const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,h);x.drawImage(img,0,0,w,h);
+    out=c.toDataURL('image/jpeg',q);
+    if(out.length<3300000)return {url:out,w:w,h:h};
+    if(q>0.72)q-=.09;else k*=.85;
+  }
+  throw Error('사진 용량이 너무 큽니다. 더 작은 사진으로 골라주세요.');
+}
+function openPhoto(code){
+  if(!db)return;code=canonicalCode(code);const i=db.items.find(x=>x.code===code&&x.active);if(!i)return;
+  pv={code:code,staged:null,err:false};pvOpen=true;el('pv').classList.remove('hidden');document.body.classList.add('qs-open');renderPv();
+}
+function closePhoto(){
+  if(busy)return;pvOpen=false;pv={code:'',staged:null,err:false};el('pv').classList.add('hidden');if(!sheetOpen)document.body.classList.remove('qs-open');
+  if(el('global').classList.contains('error'))msg('');
+  if(sheetOpen)renderSheet();
+}
+function cancelStaged(){if(busy)return;pv.staged=null;pv.err=false;renderPv();}
+function pvImgErr(img){
+  if(!img.dataset.r){img.dataset.r='1';setTimeout(()=>{const s=img.dataset.src;if(s&&pvOpen)img.src=s+(s.includes('?')?'&':'?')+'r='+Date.now();},1200);}
+  else{pv.err=true;renderPv();}
+}
+function renderPv(){
+  if(!pvOpen)return;const i=db&&db.items.find(x=>x.code===pv.code);if(!i){closePhoto();return;}
+  const admin=!!db.user.admin,off=frozen();
+  el('pv-meta').textContent=[i.orderCode,i.code,i.size].filter(Boolean).join(' · ');el('pv-name').textContent=i.name;
+  const src=pv.staged?pv.staged.url:(i.photo&&!pv.err?photoSrc(i.photo,1600):''),img=el('pv-img');
+  if(src){if(img.dataset.src!==src){img.dataset.r='';delete img.dataset.r;img.dataset.src=src;img.src=src;}img.classList.remove('hidden');}
+  else{img.removeAttribute('src');img.dataset.src='';img.classList.add('hidden');}
+  el('pv-empty').textContent=pv.err?'사진을 불러오지 못했어요. 잠시 후 다시 열어보세요.':'등록된 사진이 없어요';el('pv-empty').classList.toggle('hidden',!!src);
+  el('pv-tag').classList.toggle('hidden',!pv.staged);
+  el('pv-idle').classList.toggle('hidden',!admin||!!pv.staged);el('pv-staged').classList.toggle('hidden',!pv.staged);
+  el('pv-del').classList.toggle('hidden',!i.photo);
+  ['pv-pick','pv-paste','pv-url','pv-del','pv-save','pv-cancel'].forEach(id=>{el(id).disabled=off;});
+  el('pv-save').textContent=busy?'올리는 중…':'이 사진으로 저장';
+  el('pv-hint').textContent=!admin?'사진은 관리자만 바꿀 수 있어요.':pv.staged?(pv.staged.w+'×'+pv.staged.h+' · '+Math.round(pv.staged.kb)+'KB · 맞으면 저장을 눌러주세요'):'컴퓨터는 Ctrl+V로 붙여넣거나 사진을 끌어다 놓을 수 있고, 휴대폰은 사진 선택·촬영을 눌러주세요.';
+}
+function photoPicked(input){const f=input.files&&input.files[0];input.value='';if(f)stagePhoto(f);}
+function stagePhoto(file){
+  if(!db||!db.user.admin||frozen())return;
+  if(!pvOpen){if(!(sheetOpen&&sel)){toast('사진을 바꿀 품목의 사진을 먼저 눌러주세요','err');return;}openPhoto(sel);}
+  if(file.type&&!/^image\//.test(file.type)){toast('사진 파일이 아니에요','err');return;}
+  toast('사진 줄이는 중…','busy');
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{try{const r=photoEncode(img);URL.revokeObjectURL(url);pv.staged={b64:r.url.split(',')[1],url:r.url,w:r.w,h:r.h,kb:r.url.length*0.75/1024};pv.err=false;toastHide();renderPv();}catch(e){URL.revokeObjectURL(url);toast(e.message||'사진을 처리하지 못했어요','err');}};
+  img.onerror=()=>{URL.revokeObjectURL(url);toast('이 사진 형식은 열 수 없어요. JPG·PNG로 다시 골라주세요.','err');};
+  img.src=url;
+}
+async function pasteFromClipboard(){
+  if(frozen())return;
+  if(!navigator.clipboard||!navigator.clipboard.read){toast('이 브라우저는 버튼 붙여넣기를 지원하지 않아요. Ctrl+V를 쓰거나 사진 선택을 눌러주세요','err');return;}
+  try{
+    const items=await navigator.clipboard.read();
+    for(const it of items){const t=it.types.find(x=>/^image\//.test(x));if(t){stagePhoto(await it.getType(t));return;}}
+    toast('복사된 사진이 없어요. 사진을 먼저 복사해주세요','err');
+  }catch(e){toast('붙여넣기가 허용되지 않았어요. 사진 선택을 눌러주세요','err');}
+}
+function savePhoto(){
+  if(frozen()||!pv.staged||!db.user.admin)return;const code=pv.code,staged=pv.staged;
+  apiCall('uploadPhoto',{code:code,data:staged.b64},{busy:'사진 올리는 중…',done:'사진이 저장되었습니다',ok:r=>{const it=db.items.find(x=>x.code===r.code);if(it)it.photo=r.photo;pv.staged=null;pv.err=false;renderStock();renderPv();}});
+  renderPv();
+}
+function photoByUrl(){
+  if(frozen()||!db.user.admin)return;const v=prompt('사진 주소(https:// …)를 붙여넣으세요.\n구글 드라이브 공유 링크도 됩니다.','');if(v===null)return;
+  if(!v.trim()){toast('주소가 비어 있어요','err');return;}
+  apiCall('setItemPhoto',{code:pv.code,photo:v.trim()},{busy:'사진 주소 저장 중…',done:'사진이 바뀌었습니다',ok:r=>{const it=db.items.find(x=>x.code===r.code);if(it)it.photo=r.photo;pv.err=false;renderStock();renderPv();}});
+}
+function photoRemove(){
+  if(frozen()||!db.user.admin)return;const i=db.items.find(x=>x.code===pv.code);if(!i||!i.photo)return;
+  if(!confirm(i.name+'\n사진을 지울까요? (구글 드라이브의 파일은 그대로 남아요)'))return;
+  apiCall('setItemPhoto',{code:i.code,photo:''},{busy:'사진 지우는 중…',done:'사진을 지웠습니다',ok:r=>{const it=db.items.find(x=>x.code===r.code);if(it)it.photo='';renderStock();renderPv();}});
+}
+/* 붙여넣기(Ctrl+V): 사진이 복사돼 있으면 입출고 창·사진 창이 열린 품목에 올릴 준비를 합니다. 글자 붙여넣기는 그대로 둡니다. */
+document.addEventListener('paste',ev=>{
+  const cd=ev.clipboardData;if(!cd||!db||!db.user||!db.user.admin)return;
+  let f=null;for(const it of Array.from(cd.items||[])){if(it.kind==='file'&&/^image\//.test(it.type)){f=it.getAsFile();break;}}
+  if(!f)return;
+  const tag=String(ev.target&&ev.target.tagName||'').toUpperCase();
+  if((tag==='INPUT'||tag==='TEXTAREA')&&cd.getData('text/plain'))return;
+  if(!pvOpen&&!(sheetOpen&&sel)){if(view==='stock'&&tag!=='INPUT'&&tag!=='TEXTAREA')toast('사진을 바꿀 품목의 사진을 먼저 눌러주세요','err');return;}
+  ev.preventDefault();stagePhoto(f);
+});
+(function(){const st=el('pv-stage');if(!st)return;
+  ['dragenter','dragover'].forEach(n=>st.addEventListener(n,e=>{if(db&&db.user.admin){e.preventDefault();st.classList.add('drag');}}));
+  ['dragleave','drop'].forEach(n=>st.addEventListener(n,e=>{e.preventDefault();st.classList.remove('drag');}));
+  st.addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(f)stagePhoto(f);});
+})();
+
+/* ===== v3.7 현황(입출고 창)에서 바로 정보 수정 ===== */
+/* simple()과 같은 안전장치(저장 중 잠금·만료 확인)에, 저장 뒤 화면을 닫지 않고 이어서 쓰는 동작을 더한 호출 도우미 */
+function apiCall(method,payload,o){
+  if(frozen())return;busy=true;controls();toast(o.busy||'저장 중…','busy');
+  google.script.run.withSuccessHandler(r=>{busy=false;minSeq=loadSeq+1;toast(o.done||'저장되었습니다','ok');try{if(o.ok)o.ok(r);}catch(e){}formsReady=false;controls();load(true);})
+  .withFailureHandler(e=>{busy=false;if(companyFailure(e)){toastHide();controls();return;}const t=String(e.message||e).replace(/^Error: /,'').replace('[확인] ','');toast(t,'err');msg(t+'\n응답 오류라면 새로고침해 반영 여부를 확인하세요.',true);controls();renderPv();})[method](payload,accessToken);
+}
+function qeName(){const k=el('qe-kind').value.trim(),sz=el('qe-size').value.trim().replace(/\s*[*×X]\s*/g,'x'),c=el('qe-color').value.trim();
+  el('qe-name').textContent=k?'시트 품목명은 이렇게 저장돼요: '+[k,sz,c].filter(Boolean).join(' '):'';}
+function toggleEdit(){
+  const i=current();if(!i||frozen()||!db.user.admin)return;editMode=!editMode;cutMode=false;chosenType='';msg('');
+  if(editMode){
+    el('qe-order').value=i.orderCode||'';el('qe-kind').value=kindOf(i);el('qe-size').value=i.size||'';el('qe-color').value=colorOf(i);
+    el('qe-spec').value=i.spec||'';el('qe-loc').value=i.location||'';el('qe-safety').value=i.safety||0;el('qe-memo').value=i.memo||'';
+    el('qe-counts').innerHTML=visibleLengths(i).map(l=>'<div><label>'+esc(i.hasLength?l.mm+'mm':'재고')+'</label><input type="number" inputmode="numeric" min="0" max="1000000" step="1" data-qe-len="'+l.mm+'" data-was="'+l.stock+'" value="'+l.stock+'"></div>').join('');
+    el('qs-edit').querySelector('details').open=false;qeName();
+  }
+  renderWork();
+}
+function saveQuick(){
+  const i=current();if(!i||frozen()||!db.user.admin||!editMode)return;
+  const kind=el('qe-kind').value.trim(),safety=el('qe-safety').value;
+  if(!kind){msg('종류(품명)를 입력하세요. 예: 프로파일',true);renderSheet();el('qe-kind').focus();return;}
+  if(safety===''||!Number.isSafeInteger(Number(safety))||Number(safety)<0||Number(safety)>1000000){msg('부족 알림 기준은 0 이상 숫자로 입력하세요.',true);renderSheet();el('qe-safety').focus();return;}
+  const counts=[],changes=[];let bad='';
+  el('qe-counts').querySelectorAll('[data-qe-len]').forEach(inp=>{const v=inp.value,n=Number(v),mm=Number(inp.dataset.qeLen),was=Number(inp.dataset.was);
+    if(v===''||!Number.isSafeInteger(n)||n<0){bad='수량은 0 이상 숫자로 입력하세요.';return;}
+    if(n!==was){counts.push({length:mm||'',count:n});changes.push((mm?mm+'mm ':'')+fmt(was)+' → '+fmt(n));}});
+  if(bad){msg(bad,true);renderSheet();return;}
+  if(changes.length&&!confirm(i.name+'\n\n'+changes.join('\n')+'\n\n이 수량으로 조정할까요? (실사조정으로 기록됩니다)'))return;
+  msg('');
+  apiCall('saveItemAll',{code:i.code,oldCode:i.code,kind:kind,color:el('qe-color').value.trim(),size:el('qe-size').value,spec:el('qe-spec').value,location:el('qe-loc').value,safety:safety,orderCode:el('qe-order').value,memo:el('qe-memo').value,edit:true,version:i.editVersion,counts:counts,stockVersion:i.version,requestId:'ac_'+Date.now()+'_'+Math.random().toString(36).slice(2,10)},
+    {busy:'저장 중…',done:'수정되었습니다',ok:()=>{editMode=false;}});
+}
 </script></body></html>

@@ -1,4 +1,10 @@
-// ARCHICELL v3.0 길이별 재고 · 크기/주문코드/사진 · 절단 기록 (v2.8.3 자동 접속 / v2.7 품목코드 기능 유지)
+// ARCHICELL Code v3.6 (v3.5 + 큰 사진 저장 · 사진 주소 바꾸기/지우기) — v3.0 길이별 재고 · 크기/주문코드/사진 · 절단 기록
+/*
+ * v3.6 변경 요약 (v3.5에서 바뀐 부분)
+ * - 사진 저장 주소를 w600 → w1600 으로 올려 큰 화면에서도 선명하게 보입니다. (기존 사진 주소는 그대로 두고, 화면에서 크기를 골라 씁니다)
+ * - 새 기능 setItemPhoto: 현황 화면에서 사진 주소를 바꾸거나 지울 수 있습니다. (관리자 전용, 시트의 '사진' 칸만 바꿈)
+ * - 입출고 기록·재고 수량·다른 열은 건드리지 않습니다.
+ */
 /*
  * v3.0 변경 요약
  * - 품목 하나(품목코드 1개 = QR 1개) 안에서 길이(mm)별로 재고를 나눠 계산합니다.
@@ -663,7 +669,7 @@ function photoUrl_(v){
   const s=String(v??'').trim().slice(0,500);if(!s)return '';
   if(!/^https:\/\/[^\s"'<>]+$/.test(s))fail_('사진 주소는 https:// 로 시작하는 주소만 넣을 수 있습니다.');
   const m=s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:export=\w+&)?id=)([\w-]{20,})/);
-  return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w600':s;
+  return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1600':s;
 }
 
 // [v2.6 추가 G] 초기 데이터. 등록 전 previewInitialMaterials_ 실행 권장.
@@ -735,7 +741,7 @@ function redirectPage_(base,sku,action){
 function doPost(e){
   const api={loginCompany:loginCompany,getDashboard:getDashboard,saveTransaction:saveTransaction,adjustStock:adjustStock,
     cancelTransaction:cancelTransaction,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
-    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll};
+    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto};
   let out;
   try{
     const raw=String(e&&e.postData&&e.postData.contents||'');
@@ -844,12 +850,28 @@ function uploadPhoto(p, accessToken){
   const file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(data),'image/jpeg',item.code+'_'+stamp+'.jpg'));
   // 로그인하지 않은 직원 휴대폰에서도 보이도록 '링크가 있는 사람 보기'로 둡니다.
   try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){}
-  const url='https://drive.google.com/thumbnail?id='+file.getId()+'&sz=w600';
+  const url='https://drive.google.com/thumbnail?id='+file.getId()+'&sz=w1600';
   return locked_(function(){
     const raw=rows_(sh,schema.headers.length),index=raw.findIndex(r=>normalizeCode_(r[0])===item.code);
     if(index<0)fail_('품목 행을 찾지 못했습니다.');
     sh.getRange(index+2,schema.extra.photo+1).setValue(url);SpreadsheetApp.flush();
     return {ok:true,code:item.code,photo:url};
+  });
+}
+
+/* ===================== v3.6 사진 주소 바꾸기·지우기 ===================== */
+/** 관리자 전용. 품목 시트의 '사진' 칸만 바꿉니다. photo를 비우면 사진이 지워집니다(드라이브 파일은 그대로 남습니다). */
+function setItemPhoto(p, accessToken){
+  const u=auth_(accessToken);admin_(u);p=p||{};
+  const code=code_(p.code),photo=photoUrl_(p.photo);
+  return locked_(function(){
+    const s=state_(),item=s.items.find(i=>i.code===resolveCode_(code,s.directAliases));
+    if(!item)fail_('품목을 찾을 수 없습니다.');
+    const sh=s.ss.getSheetByName(CFG.ITEMS),schema=itemSchema_(sh);requireItemSchema_(sh,schema);
+    const raw=rows_(sh,schema.headers.length),index=raw.findIndex(r=>normalizeCode_(r[0])===item.code);
+    if(index<0)fail_('품목 행을 찾지 못했습니다.');
+    sh.getRange(index+2,schema.extra.photo+1).setValue(photo);SpreadsheetApp.flush();
+    return {ok:true,code:item.code,photo:photo};
   });
 }
 
