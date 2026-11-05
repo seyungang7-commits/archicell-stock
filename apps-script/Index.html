@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
+<!-- ARCHICELL Index v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
 <!-- v3.8 간편 설정: 회사명·포인트 색·목록 사진 크기는 아래 세 값만 수정하세요. -->
@@ -600,6 +600,87 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
  .hd-title{gap:6px}
  .hd-title img.hd-word{display:block;height:22px;width:auto;max-width:100%}
 }
+
+/* ===== v3.9.7 PC에서 심볼이 함께 보이던 문제 수정 (휴대폰만 심볼) ===== */
+.hd-brand img.hd-symbol{display:none}
+@media(max-width:760px){.hd-brand img.hd-symbol{display:block}}
+</style>
+
+<style id="archicell-v397-history">/* ===== v3.9.7 입출고 기록 화면만 (#view-history 안에서만 적용) ===== */
+#view-history>.card{padding:18px 22px}
+#view-history>.card>p.muted:first-of-type{margin:0 0 12px}
+#view-history .grid{gap:12px;margin-bottom:10px}
+#view-history label{font-size:13px;margin-bottom:6px}
+#view-history select,#view-history input{min-height:46px;font-size:15px}
+#view-history .log-summary{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:4px 0 10px;font-size:14px;color:var(--ink)}
+#view-history .log-summary .sep{width:1px;height:12px;background:var(--line)}
+#view-history .log-summary small{flex-basis:100%;font-size:12px}
+#view-history .t-in{color:#1f7a4d;font-weight:650}#view-history .t-out{color:#c2410c;font-weight:650}
+#view-history .tablewrap{overflow-x:auto}
+#view-history .h-table{width:100%;border-collapse:collapse;table-layout:fixed}
+#view-history .h-table th{font-size:13px;font-weight:600;color:var(--muted);text-align:left;padding:10px 12px;background:var(--soft);border-bottom:1px solid var(--line)}
+#view-history .h-table td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14.5px;color:var(--ink)}
+#view-history th.h-date{width:118px}#view-history th.h-type{width:118px}#view-history th.h-qty{width:170px}#view-history th.h-who{width:24%}#view-history th.h-cancel{width:120px;text-align:center}
+#view-history td.h-date{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+#view-history .h-name{display:block;font-size:16px;font-weight:650;line-height:1.35;overflow-wrap:anywhere}
+#view-history .h-sub{display:block;font-size:14px;color:#3f4651;margin-top:3px;font-weight:500}
+#view-history .h-code{display:block;font-size:12.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#view-history .h-badge{display:inline-block;font-size:13px;font-weight:650;padding:3px 9px;border-radius:6px;background:var(--soft);border:1px solid var(--line);color:#4a515c}
+#view-history .tone-in .h-badge{background:#eef8f2;border-color:#cfe9da;color:#1f7a4d}
+#view-history .tone-out .h-badge{background:#fff3ec;border-color:#f3d6c6;color:#c2410c}
+#view-history .tone-cancel .h-badge{background:#f3f4f6;border-color:#e2e4e8;color:#6b7280;text-decoration:line-through}
+#view-history td.h-type small{display:block;font-size:12.5px;color:var(--muted);margin-top:5px}
+#view-history .h-delta{display:block;font-size:20px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums;color:var(--ink)}
+#view-history .h-delta i{font-style:normal;font-size:13px;font-weight:600;margin-left:2px;color:var(--muted)}
+#view-history .tone-in .h-delta{color:#1f7a4d}#view-history .tone-out .h-delta{color:#c2410c}#view-history .tone-cancel .h-delta{color:#6b7280}
+#view-history td.h-qty small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+#view-history td.h-who b{display:block;font-size:14.5px;font-weight:600}
+#view-history td.h-who span{display:block;font-size:13.5px;color:#4f5763;margin-top:2px;overflow-wrap:anywhere}
+#view-history td.h-who .h-date-m{display:none}
+#view-history td.h-cancel{text-align:center}
+#view-history .h-cancel-btn{width:auto;min-height:38px;padding:6px 16px;font-size:14px;border-radius:8px;background:#fff;border:1px solid #f1d5c4;color:#c2410c;font-weight:650}
+#view-history .h-state{display:inline-block;font-size:12.5px;color:var(--muted)}
+#view-history .h-state.is-canceled{color:#6b7280;font-weight:650;background:#f3f4f6;border-radius:6px;padding:2px 8px;margin-top:5px}
+#view-history tr.is-canceled td{background:#fafafa}#view-history tr.is-canceled .h-name,#view-history tr.is-canceled .h-delta{opacity:.6}
+#view-history .h-empty{padding:24px 0;text-align:center}
+@media(max-width:760px){
+ #view-history>.card{padding:14px}
+ #view-history .grid{grid-template-columns:1fr!important}
+ #view-history .tablewrap{overflow:visible}
+ #view-history .h-table,#view-history .h-table tbody{display:block;width:100%!important;min-width:0!important}
+ #view-history .h-table tr.h-row{box-sizing:border-box;width:100%}
+ #view-history .h-table td{min-width:0;white-space:normal!important}
+ #view-history .h-table thead{display:none}
+ #view-history .h-table tr.h-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"item item" "type qty" "who who" "cancel cancel";gap:8px 12px;
+   border:1px solid var(--line);border-radius:10px;background:#fff;padding:12px 14px;margin-bottom:10px}
+ #view-history .h-table td{display:block;padding:0;border:0;background:transparent!important}
+ #view-history td.h-date{display:none}
+ #view-history td.h-item{grid-area:item}
+ #view-history td.h-type{grid-area:type;align-self:center}
+ #view-history td.h-qty{grid-area:qty;text-align:right}
+ #view-history td.h-who{grid-area:who;border-top:1px solid var(--line)!important;padding-top:8px}
+ #view-history td.h-who b,#view-history td.h-who span{display:inline;margin:0}
+ #view-history td.h-who span::before{content:" · "}
+ #view-history td.h-who .h-date-m{display:inline;color:var(--muted)}
+ #view-history td.h-cancel{grid-area:cancel;text-align:left}
+ #view-history td.h-cancel:has(.h-state:not(.is-canceled)){display:none}
+ #view-history .h-cancel-btn{width:100%;min-height:44px}
+ #view-history .h-delta{font-size:21px}
+}
+</style>
+<style id="archicell-v398-history">/* ===== v3.9.8 입출고 기록: 도구 줄 · 날짜/시간 두 줄 · 더 보기 (#view-history 안에서만 적용) ===== */
+#view-history .h-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:2px 0 12px}
+#view-history .h-seg{display:flex;flex-wrap:wrap;gap:6px}
+#view-history .h-chip{width:auto;min-height:38px;padding:6px 14px;font-size:14px;font-weight:600;border-radius:999px;background:#fff;border:1px solid var(--line);color:#4a515c;cursor:pointer}
+#view-history .h-chip.on{background:#eaf0ff;border-color:#b9cbff;color:#2447c9}
+#view-history .h-chip.h-csv{margin-left:auto;border-radius:8px}
+#view-history td.h-date{white-space:nowrap}
+#view-history td.h-date b{display:block;font-size:14.5px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+#view-history td.h-date span{display:block;font-size:13.5px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+#view-history .h-hidden-note{display:block;margin:4px 0 10px;font-size:12.5px;color:var(--muted)}
+#view-history .h-more{display:flex;justify-content:center;margin:14px 0 4px}
+#view-history .h-more button{width:auto;min-height:44px;padding:8px 28px;font-size:15px;font-weight:650;border-radius:10px;background:#fff;border:1px solid var(--line);color:var(--ink);cursor:pointer}
+@media (max-width:720px){#view-history .h-chip.h-csv{margin-left:0}#view-history .h-chip{min-height:42px}}
 </style>
 
 <section id="company-login" aria-label="회사 재고관리 접속">
@@ -691,7 +772,7 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
   <div class="side-sec"><div class="side-head"><h2>보충 필요</h2></div><div id="side-low"></div></div>
 </aside>
 </div></section>
-<section id="view-history" class="hidden"><div class="card"><div class="panel-title"><h2>입출고 기록</h2><span class="muted">최근 100건</span></div><p class="muted">작업자는 본인 입출고만 취소할 수 있습니다. 실사 이전 기록은 취소할 수 없습니다.</p><div class="grid"><div><label for="log-type">처리 종류</label><select id="log-type" onchange="renderHistory()"><option value="">전체</option><option>입고</option><option>출고</option><option>절단출고</option><option>절단입고</option><option>취소</option><option>실사조정</option><option>기초재고</option></select></div><div><label for="log-search">품목·작업자·메모 검색</label><input id="log-search" oninput="renderHistory()" placeholder="최근 100건에서 검색"></div></div><div class="tablewrap" id="history"></div></div></section>
+<section id="view-history" class="hidden"><div class="card"><p class="muted">작업자는 본인 입출고만 취소할 수 있습니다. 실사 이전 기록은 취소할 수 없습니다.</p><div class="grid"><div><label for="log-type">처리 종류</label><select id="log-type" onchange="renderHistory()"><option value="">전체</option><option>입고</option><option>출고</option><option>절단출고</option><option>절단입고</option><option>취소</option><option>실사조정</option><option>기초재고</option></select></div><div><label for="log-search">품목·크기·길이·코드·작업자·메모 검색</label><input id="log-search" oninput="renderHistory()" placeholder="예: 3060 · 940 · 실버 · 강세윤" autocomplete="off"></div></div><div class="h-tools" id="h-tools"><div class="h-seg" role="group" aria-label="기간"><button type="button" class="h-chip" data-hp="all" onclick="histSet('period','all')">전체</button><button type="button" class="h-chip" data-hp="today" onclick="histSet('period','today')">오늘</button><button type="button" class="h-chip" data-hp="week" onclick="histSet('period','week')">이번 주</button><button type="button" class="h-chip" data-hp="month" onclick="histSet('period','month')">이번 달</button></div><div class="h-seg" role="group" aria-label="보기 옵션"><button type="button" class="h-chip" id="h-mine" aria-pressed="false" onclick="histToggle('mine')">내 기록만</button><button type="button" class="h-chip" id="h-cancel" aria-pressed="false" onclick="histToggle('showCancel')">취소 내역 보기</button><button type="button" class="h-chip" id="h-base" aria-pressed="false" onclick="histToggle('showBase')">기초재고 보기</button></div><button type="button" class="h-chip h-csv" onclick="histCsv()">엑셀(CSV) 내려받기</button></div><p id="log-summary" class="log-summary"></p><div class="tablewrap" id="history"></div></div></section>
 
 <!-- 관리 -->
 <section id="view-manage" class="hidden"><div class="management-layout"><div class="card"><h1>재고 실사·조정</h1><p class="muted">세는 동안 자재 이동을 잠시 멈춰주세요. 확인 중 입출고가 생기면 다시 확인하도록 안내합니다.</p>
@@ -1712,5 +1793,179 @@ const phSimpleBase=simple;
 simple=function(method,p){if(method==='saveItem'&&ph.staged&&!el('edit-sku').value)ph.pendingFor=String(p&&p.code||'');return phSimpleBase(method,p);};
 const phControlsBase=controls;
 controls=function(){const r=phControlsBase.apply(this,arguments);try{phRender();}catch(e){}return r;};
+</script>
+<script>
+/* ===== v3.9.7 입출고 기록: 품목명 중심 표시 · 검색 확장 · 휴대폰 카드 · 건수/입출고 요약 =====
+   - 기록 당시 품목명(r.name)을 그대로 제목으로 씁니다. 현재 품목 정보(크기·색상·두께)는 품목명에 없을 때만 덧붙입니다.
+   - 길이는 기록의 길이(r.length)만 씁니다. 기본길이 등으로 추측하지 않습니다.
+   - 처리 후 수량(r.stock)은 서버가 기록한 '품목 전체 재고'입니다. 길이별 재고로 표시하지 않습니다.
+   - 취소 버튼 동작은 v3.x 그대로입니다(같은 확인 문구 · begin('cancelTransaction')). */
+function histNorm(v){return String(v||'').toLowerCase().replace(/\s+/g,'').replace(/[x×*]/g,'x');}
+function histSize(v){return String(v||'').replace(/(\d)\s*[xX×*]\s*(\d)/g,'$1×$2');}
+function histItem(r){return db&&db.items.find(i=>i.code===(r.currentCode||r.code))||null;}
+function histTitle(r,it){
+  const base=String(r.name||'').trim()||(it?it.name:'')||r.code,n=histNorm(base),add=[];
+  if(it&&it.size&&!n.includes(histNorm(it.size)))add.push(it.size);
+  const c=it?colorOf(it):'';if(c&&!n.includes(histNorm(c))&&!(c==='블랙'&&/검정|흑색/.test(base))&&!(c==='실버'&&/은색/.test(base)))add.push(c);
+  return histSize([base].concat(add).join(' '));
+}
+function histTone(r){
+  if(r.type==='취소')return 'cancel';
+  if(r.type==='입고'||r.type==='절단입고')return 'in';
+  if(r.type==='출고'||r.type==='절단출고')return 'out';
+  return 'neutral';
+}
+function histCancelCell(r){
+  if(r.canCancel)return '<button type="button" class="h-cancel-btn" data-cancel="'+esc(r.id)+'">취소</button>';
+  if(r.canceled)return '<span class="h-state is-canceled">취소됨</span>';
+  if(r.type==='취소')return '<span class="h-state">취소 기록</span>';
+  if(['입고','출고','절단출고'].includes(r.type))return '<span class="h-state">본인 기록만 취소 가능</span>';
+  return '<span class="h-state">취소 불가</span>';
+}
+renderHistory=function(){
+  if(!db)return;
+  const kind=el('log-type').value,q=el('log-search').value.trim().toLowerCase(),qn=histNorm(q);
+  const rows=db.recent.filter(r=>{
+    if(kind&&r.type!==kind)return false;if(!q)return true;
+    const it=histItem(r);
+    const hay=[r.code,r.currentCode,r.name,r.operator,r.memo,r.type,r.length?r.length+'mm':'',
+      it?it.name:'',it?it.size:'',it?colorOf(it):'',it?kindOf(it):'',it?it.spec:'',it?it.orderCode:''].join(' ').toLowerCase();
+    return hay.includes(q)||histNorm(hay).includes(qn);
+  });
+  // 요약: 최근 100건 중 조회 결과. 입고·출고만 합산(취소된 기록 제외). 기초재고·실사조정·절단·취소는 건수만 따로.
+  const sum={}, other={};
+  rows.forEach(r=>{
+    const u=unitOf(r);
+    if((r.type==='입고'||r.type==='출고')&&!r.canceled){sum[r.type]=sum[r.type]||{};sum[r.type][u]=(sum[r.type][u]||0)+Math.abs(r.delta);}
+    else if(r.type!=='입고'&&r.type!=='출고')other[r.type]=(other[r.type]||0)+1;
+  });
+  const fmtSum=(t,sign)=>sum[t]?Object.keys(sum[t]).map(u=>sign+fmt(sum[t][u])+u).join(' · '):'';
+  const parts=['<b>'+fmt(rows.length)+'건</b> 표시 <span class="muted">(최근 '+fmt(db.recent.length)+'건 중)</span>'];
+  if(sum['입고'])parts.push('<span class="t-in">입고 '+fmtSum('입고','+')+'</span>');
+  if(sum['출고'])parts.push('<span class="t-out">출고 '+fmtSum('출고','−')+'</span>');
+  const o=Object.keys(other).map(t=>t+' '+other[t]+'건').join(' · ');if(o)parts.push('<span class="muted">'+esc(o)+'</span>');
+  el('log-summary').innerHTML=parts.join('<i class="sep"></i>')+'<small class="muted">입고·출고 합계는 취소된 기록을 뺀 값입니다.</small>';
+  if(!rows.length){el('history').innerHTML='<p class="muted h-empty">조건에 맞는 기록이 없습니다. 최근 '+fmt(db.recent.length)+'건 안에서만 찾습니다.</p>';return;}
+  el('history').innerHTML='<table class="h-table"><thead><tr><th class="h-date">처리일시</th><th class="h-item">품목</th><th class="h-type">처리</th><th class="h-qty">수량</th><th class="h-who">작업자 · 메모</th><th class="h-cancel">취소</th></tr></thead><tbody>'+
+    rows.map(r=>{
+      const it=histItem(r),u=esc(unitOf(r)),tone=histTone(r);
+      const sub=[r.length?'길이 '+fmt(r.length)+'mm':'',it&&it.spec?'두께 '+esc(it.spec):''].filter(Boolean).join(' · ');
+      const codes=r.currentCode&&r.currentCode!==r.code?esc(r.code)+' → 현재 '+esc(r.currentCode):esc(r.code);
+      const extra=r.type==='실사조정'?'<small>실제 센 수량 '+fmt(r.quantity)+u+'</small>':'';
+      return '<tr class="h-row tone-'+tone+(r.canceled?' is-canceled':'')+'">'+
+        '<td class="h-date">'+esc(r.date)+'</td>'+
+        '<td class="h-item"><b class="h-name">'+esc(histTitle(r,it))+'</b>'+(sub?'<span class="h-sub">'+sub+'</span>':'')+'<span class="h-code">'+codes+'</span></td>'+
+        '<td class="h-type"><span class="h-badge">'+esc(r.type)+'</span>'+extra+'</td>'+
+        '<td class="h-qty"><b class="h-delta">'+(r.delta>0?'+':r.delta<0?'−':'')+fmt(Math.abs(r.delta))+'<i>'+u+'</i></b><small>처리 후 품목 전체 '+fmt(r.stock)+u+'</small></td>'+
+        '<td class="h-who"><b>'+esc(r.operator)+'</b>'+(r.memo?'<span>'+esc(r.memo)+'</span>':'')+'<span class="h-date-m">'+esc(r.date)+'</span></td>'+
+        '<td class="h-cancel">'+histCancelCell(r)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+  // 취소 버튼: 기존 v3.x와 같은 동작
+  el('history').querySelectorAll('[data-cancel]').forEach(b=>{b.disabled=frozen();b.onclick=()=>{if(frozen())return;const r=db.recent.find(x=>x.id===b.dataset.cancel);const reason=prompt(r.code+' '+(r.length?r.length+'mm ':'')+r.type+' '+r.quantity+unitOf(r)+(r.type==='절단출고'?' (잘라서 입고된 길이도 함께)':'')+' 기록을 취소합니다.\n취소 사유를 입력하세요.','기록 정정');if(reason&&reason.trim())begin('cancelTransaction',{target:r.id,reason:reason});};});
+};
+
+/* ===== v3.9.8 입출고 기록 개선 =====
+   - 화면 표시만 바꿉니다. 시트 데이터·취소 동작(begin('cancelTransaction'))은 그대로입니다.
+   - 서버(Code v3.9)가 보내주는 최근 100건 안에서만 거릅니다. 100건보다 오래된 기록은 시트에서 확인하세요.
+   - 취소된 기록과 '취소' 기록, 기초재고 기록은 기본으로 숨깁니다(스위치로 보기). 합계는 원래부터 취소분을 뺀 값입니다. */
+var histState={period:'all',mine:false,showCancel:false,showBase:false,limit:30,sig:''};
+var H_PAGE=30,H_DAYS=['일','월','화','수','목','금','토'];
+function histSet(k,v){histState[k]=v;histState.limit=H_PAGE;renderHistory();}
+function histToggle(k){histState[k]=!histState[k];histState.limit=H_PAGE;renderHistory();}
+function histMore(){histState.limit+=H_PAGE;renderHistory();}
+function histParse(r){
+  const m=/^(\d\d)-(\d\d)\s+(\d\d):(\d\d)/.exec(String(r.date||''));if(!m)return null;
+  const now=new Date(),mo=+m[1],d=+m[2];let y=now.getFullYear();if(mo>now.getMonth()+2)y--;
+  const dt=new Date(y,mo-1,d);
+  return {y:y,mo:mo,d:d,hm:m[3]+':'+m[4],dt:dt,
+    day:('0'+mo).slice(-2)+'/'+('0'+d).slice(-2)+' ('+H_DAYS[dt.getDay()]+')'};
+}
+function histInPeriod(p,period){
+  if(period==='all')return true;if(!p)return true;
+  const now=new Date(),t0=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(period==='today')return p.dt.getTime()===t0.getTime();
+  if(period==='week'){const back=(t0.getDay()+6)%7,start=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-back);return p.dt>=start;}
+  if(period==='month')return p.dt.getFullYear()===t0.getFullYear()&&p.dt.getMonth()===t0.getMonth();
+  return true;
+}
+function histCsvText(v){let s=String(v==null?'':v);if(/^[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
+function histCsv(){
+  const rows=histState.lastRows||[];
+  if(!rows.length){msg('내려받을 기록이 없습니다.',true);return;}
+  const head=['처리일시','품목','길이(mm)','품목코드','처리','수량 변동','처리 후 품목 전체','단위','작업자','메모','상태'];
+  const lines=[head.map(histCsvText).join(',')];
+  rows.forEach(r=>{
+    const it=histItem(r),status=r.canceled?'취소됨':(r.type==='취소'?'취소 기록':'');
+    lines.push([histCsvText(r.date),histCsvText(histTitle(r,it)),r.length||'',histCsvText(r.currentCode||r.code),histCsvText(r.type),
+      r.delta,r.stock,histCsvText(unitOf(r)),histCsvText(r.operator),histCsvText(r.memo),histCsvText(status)].join(','));
+  });
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+  const n=new Date(),stamp=n.getFullYear()+('0'+(n.getMonth()+1)).slice(-2)+('0'+n.getDate()).slice(-2);
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='archicell-기록-'+stamp+'.csv';
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+  msg('현재 조건의 기록 '+fmt(rows.length)+'건을 CSV로 내려받았습니다.');setTimeout(function(){msg('');},3500);
+}
+renderHistory=function(){
+  if(!db)return;
+  const S=histState,kind=el('log-type').value,q=el('log-search').value.trim().toLowerCase(),qn=histNorm(q),me=String((db.user&&db.user.name)||'');
+  const sig=[kind,q,S.period,S.mine,S.showCancel,S.showBase].join('|');if(sig!==S.sig){S.sig=sig;S.limit=H_PAGE;}
+  // 1단계: 처리 종류·검색·기간·내 기록 조건
+  const base=db.recent.filter(r=>{
+    if(kind&&r.type!==kind)return false;
+    if(S.mine&&r.operator!==me)return false;
+    if(!histInPeriod(histParse(r),S.period))return false;
+    if(!q)return true;
+    const it=histItem(r);
+    const hay=[r.code,r.currentCode,r.name,r.operator,r.memo,r.type,r.length?r.length+'mm':'',
+      it?it.name:'',it?it.size:'',it?colorOf(it):'',it?kindOf(it):'',it?it.spec:'',it?it.orderCode:''].join(' ').toLowerCase();
+    return hay.includes(q)||histNorm(hay).includes(qn);
+  });
+  // 2단계: 취소·기초재고 기본 숨김 (처리 종류를 직접 고른 경우는 그대로 보여줌)
+  let hidCancel=0,hidBase=0;
+  const rows=base.filter(r=>{
+    if(!S.showCancel&&kind!=='취소'&&(r.canceled||r.type==='취소')){hidCancel++;return false;}
+    if(!S.showBase&&kind!=='기초재고'&&r.type==='기초재고'){hidBase++;return false;}
+    return true;
+  });
+  S.lastRows=rows;
+  // 도구 줄 표시 상태
+  document.querySelectorAll('#h-tools [data-hp]').forEach(b=>b.classList.toggle('on',b.dataset.hp===S.period));
+  [['h-mine','mine'],['h-cancel','showCancel'],['h-base','showBase']].forEach(x=>{const b=el(x[0]);if(b){b.classList.toggle('on',!!S[x[1]]);b.setAttribute('aria-pressed',S[x[1]]?'true':'false');}});
+  // 요약: 입고·출고만 합산(취소된 기록 제외). 나머지 종류는 건수만.
+  const sum={},other={};
+  rows.forEach(r=>{
+    const u=unitOf(r);
+    if((r.type==='입고'||r.type==='출고')&&!r.canceled){sum[r.type]=sum[r.type]||{};sum[r.type][u]=(sum[r.type][u]||0)+Math.abs(r.delta);}
+    else if(r.type!=='입고'&&r.type!=='출고')other[r.type]=(other[r.type]||0)+1;
+  });
+  const fmtSum=(t,sign)=>sum[t]?Object.keys(sum[t]).map(u=>sign+fmt(sum[t][u])+u).join(' · '):'';
+  const parts=['<b>'+fmt(rows.length)+'건</b> 표시 <span class="muted">(최근 '+fmt(db.recent.length)+'건 중)</span>'];
+  if(sum['입고'])parts.push('<span class="t-in">입고 '+fmtSum('입고','+')+'</span>');
+  if(sum['출고'])parts.push('<span class="t-out">출고 '+fmtSum('출고','−')+'</span>');
+  const o=Object.keys(other).map(t=>t+' '+other[t]+'건').join(' · ');if(o)parts.push('<span class="muted">'+esc(o)+'</span>');
+  const hid=[];if(hidCancel)hid.push('취소 '+hidCancel+'건');if(hidBase)hid.push('기초재고 '+hidBase+'건');
+  el('log-summary').innerHTML=parts.join('<i class="sep"></i>')+'<small class="muted">입고·출고 합계는 취소된 기록을 뺀 값입니다.</small>'
+    +(hid.length?'<small class="muted h-hidden-note">숨긴 기록: '+hid.join(' · ')+' (위 버튼으로 볼 수 있어요)</small>':'');
+  if(!rows.length){el('history').innerHTML='<p class="muted h-empty">조건에 맞는 기록이 없습니다. 최근 '+fmt(db.recent.length)+'건 안에서만 찾습니다.'+(hid.length?'<br>숨긴 기록이 '+hid.join(' · ')+' 있습니다.':'')+'</p>';return;}
+  const shown=rows.slice(0,S.limit),left=rows.length-shown.length;
+  el('history').innerHTML='<table class="h-table"><thead><tr><th class="h-date">처리일시</th><th class="h-item">품목</th><th class="h-type">처리</th><th class="h-qty">수량</th><th class="h-who">작업자 · 메모</th><th class="h-cancel">취소</th></tr></thead><tbody>'+
+    shown.map(r=>{
+      const it=histItem(r),u=esc(unitOf(r)),tone=histTone(r),p=histParse(r);
+      const sub=[r.length?'길이 '+fmt(r.length)+'mm':'',it&&it.spec?'두께 '+esc(it.spec):''].filter(Boolean).join(' · ');
+      const codes=r.currentCode&&r.currentCode!==r.code?esc(r.code)+' → 현재 '+esc(r.currentCode):esc(r.code);
+      const extra=r.type==='실사조정'?'<small>실제 센 수량 '+fmt(r.quantity)+u+'</small>':'';
+      const dateCell=p?'<b>'+esc(p.day)+'</b><span>'+esc(p.hm)+'</span>':'<b>'+esc(r.date)+'</b>';
+      const dateM=p?esc(p.day.replace(' (','(')+' '+p.hm):esc(r.date);
+      return '<tr class="h-row tone-'+tone+(r.canceled?' is-canceled':'')+'">'+
+        '<td class="h-date">'+dateCell+'</td>'+
+        '<td class="h-item"><b class="h-name">'+esc(histTitle(r,it))+'</b>'+(sub?'<span class="h-sub">'+sub+'</span>':'')+'<span class="h-code">'+codes+'</span></td>'+
+        '<td class="h-type"><span class="h-badge">'+esc(r.type)+'</span>'+extra+'</td>'+
+        '<td class="h-qty"><b class="h-delta">'+(r.delta>0?'+':r.delta<0?'−':'')+fmt(Math.abs(r.delta))+'<i>'+u+'</i></b><small>처리 후 품목 전체 '+fmt(r.stock)+u+'</small></td>'+
+        '<td class="h-who"><b>'+esc(r.operator)+'</b>'+(r.memo?'<span>'+esc(r.memo)+'</span>':'')+'<span class="h-date-m">'+dateM+'</span></td>'+
+        '<td class="h-cancel">'+histCancelCell(r)+'</td></tr>';
+    }).join('')+'</tbody></table>'+(left>0?'<div class="h-more"><button type="button" onclick="histMore()">더 보기 (남은 '+fmt(left)+'건)</button></div>':'');
+  // 취소 버튼: 기존 v3.x와 같은 동작
+  el('history').querySelectorAll('[data-cancel]').forEach(b=>{b.disabled=frozen();b.onclick=()=>{if(frozen())return;const r=db.recent.find(x=>x.id===b.dataset.cancel);const reason=prompt(r.code+' '+(r.length?r.length+'mm ':'')+r.type+' '+r.quantity+unitOf(r)+(r.type==='절단출고'?' (잘라서 입고된 길이도 함께)':'')+' 기록을 취소합니다.\n취소 사유를 입력하세요.','기록 정정');if(reason&&reason.trim())begin('cancelTransaction',{target:r.id,reason:reason});};});
+};
 </script>
 </body></html>
