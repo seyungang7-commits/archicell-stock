@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
+<!-- ARCHICELL Index v3.9.10 · 현황 목록 정렬(프로파일 먼저, 색상별 실버→블랙, 크기 작은 순 2020→2040→3030→3060→6060)과 색상 구분 제목 / v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
 <!-- v3.8 간편 설정: 회사명·포인트 색·목록 사진 크기는 아래 세 값만 수정하세요. -->
@@ -704,6 +704,12 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
 .dash-side .act-type.t-out{background:#fff3ec;box-shadow:inset 0 0 0 1px #f3d6c6;color:#c2410c}
 .dash-side .act.in strong{color:#1f7a4d}.dash-side .act.out strong{color:#c2410c}
 .dash-side .side-note{margin:10px 0 0;font-size:12px;color:var(--muted);text-align:center}
+</style>
+<style id="archicell-v3910-sort">/* ===== v3.9.10 현황 목록: 색상 구분 제목 ===== */
+#stock-list .sc-group{display:flex;align-items:baseline;gap:8px;margin:10px 2px 0;padding:0 0 6px;border-bottom:1px solid #e6e8ea;font-size:14px;color:#1d2120}
+#stock-list .sc-group:first-child{margin-top:0}
+#stock-list .sc-group b{font-size:15px;font-weight:700}
+#stock-list .sc-group span{font-size:12.5px;color:var(--muted)}
 </style>
 
 <section id="company-login" aria-label="회사 재고관리 접속">
@@ -2023,5 +2029,51 @@ renderSide=function(){
     return '<div class="act '+(out?'out':'in')+'"><span class="act-type '+cls+'">'+esc(r.type)+'</span><span class="act-main"><b>'+esc(r.currentCode||r.code)+(r.length?' · '+r.length+'mm':'')+'</b><small>'+esc([item?item.name:'',r.operator,when].filter(Boolean).join(' · '))+'</small></span><strong>'+(out?'−':'+')+fmt(Math.abs(r.delta))+'</strong></div>';
   }).join('')||'<p class="empty-state">표시할 입출고 기록이 없습니다.</p>';
 };
+
+/* ===== v3.9.10 현황 목록 정렬·색상 구분 =====
+   - 화면에 보이는 순서만 바꿉니다. 시트 데이터·재고 수량은 그대로입니다.
+   - 순서: 프로파일(길이로 관리하는 자재) 먼저 → 색상 실버(색상 없음 포함) → 그 외 색 → 블랙 → 크기 작은 순(2020→2040→3030→3060→6060) → 시트 순서.
+   - 부속품 등은 프로파일 뒤에 시트 순서 그대로 둡니다. */
+function stockColorName(i){
+  const c=colorOf(i);if(c)return c;
+  const t=[i.name,i.code].join(' ');
+  if(/검정|블랙|흑색|black/i.test(t))return '블랙';
+  if(/화이트|흰색|white/i.test(t))return '화이트';
+  return '';
+}
+function stockSizeKey(i){
+  let m=/(\d+(?:\.\d+)?)\s*[x×*X]\s*(\d+(?:\.\d+)?)/.exec(String(i.size||''));
+  if(!m)m=/^\s*(\d{2})(\d{2})(?!\d)/.exec(String(i.name||''));
+  if(!m)return 999999;
+  const a=Number(m[1]),b=Number(m[2]);return Math.min(a,b)*1000+Math.max(a,b);
+}
+function stockSortItems(items){
+  const rank=i=>{
+    if(!i.hasLength)return {g:1,c:0,z:0,label:'부속품·기타'};
+    const c=stockColorName(i)||'실버';
+    return {g:0,c:c==='실버'?0:c==='블랙'?2:1,z:stockSizeKey(i),label:c};
+  };
+  const arr=items.map((it,idx)=>({it:it,idx:idx,r:rank(it)}));
+  arr.sort((a,b)=>a.r.g-b.r.g||a.r.c-b.r.c||(a.r.g===0&&a.r.label!==b.r.label&&a.r.c===1?(a.r.label<b.r.label?-1:1):0)||a.r.z-b.r.z||a.idx-b.idx);
+  return arr;
+}
+var stockRowsBase=uiStockRows;
+uiStockRows=function(items){
+  const root=el('stock-list');
+  root.querySelectorAll('.sc-group').forEach(n=>n.remove());
+  const arr=stockSortItems(items);
+  stockRowsBase(arr.map(x=>x.it));
+  if(!arr.length)return;
+  const order=[],count={};
+  arr.forEach(x=>{const k=x.r.g===0?x.r.label+' 프로파일':x.r.label;if(!(k in count)){count[k]=0;order.push({k:k,code:x.it.code});}count[k]++;});
+  if(order.length<2)return;
+  const kids=Array.from(root.children);
+  order.forEach(o=>{
+    const row=kids.find(n=>n.dataset&&n.dataset.code===o.code);if(!row)return;
+    const h=document.createElement('div');h.className='sc-group';h.innerHTML='<b>'+esc(o.k)+'</b><span>'+fmt(count[o.k])+'품목</span>';
+    root.insertBefore(h,row);
+  });
+};
+if(db)renderStock();
 </script>
 </body></html>
