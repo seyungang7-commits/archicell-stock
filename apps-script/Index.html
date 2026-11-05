@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.9.10 · 현황 목록 정렬(프로파일 먼저, 색상별 실버→블랙, 크기 작은 순 2020→2040→3030→3060→6060)과 색상 구분 제목 / v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
+<!-- ARCHICELL Index v3.10 · 관리 화면 가로 배치(품목 등록·수정 위/실사·조정 접기) · 품목명 규칙(종류에 크기 숫자가 있으면 중복 삭제, 실버는 생략) · 크기 자동 (30x30) · QR 라벨(M코드 맨 위, 찍으면 입고·출고 삭제) · 기록 메모 수정 / Code v3.10과 함께 적용 / v3.9.10 · 현황 목록 정렬(프로파일 먼저, 색상별 실버→블랙, 크기 작은 순 2020→2040→3030→3060→6060)과 색상 구분 제목 / v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
 <!-- v3.8 간편 설정: 회사명·포인트 색·목록 사진 크기는 아래 세 값만 수정하세요. -->
@@ -711,6 +711,45 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
 #stock-list .sc-group b{font-size:15px;font-weight:700}
 #stock-list .sc-group span{font-size:12.5px;color:var(--muted)}
 </style>
+<style id="archicell-v310-manage">/* ===== v3.10 관리 화면 가로 배치 · QR 라벨 · 그룹 제목 · 메모 수정 ===== */
+.management-layout{grid-template-columns:minmax(0,1fr)!important;gap:16px!important}
+.item-card{padding:22px 24px}
+.if-top{max-width:560px}
+.if-main{display:grid;grid-template-columns:270px minmax(0,1fr);gap:26px;align-items:start;margin-top:4px}
+.if-photo .form-sec,.if-fields>.form-sec{margin-top:14px}
+.if-photo .ph-zone{padding:14px}
+.if-photo .ph-empty{flex-direction:column;text-align:center;gap:10px;padding:8px 0}
+.if-photo .ph-empty svg{width:44px;height:44px}
+.if-photo .ph-btn{width:100%}
+.if-photo .ph-has{flex-direction:column}
+.if-photo .ph-thumb{flex:0 0 auto;width:100%;height:170px}
+.if-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px 14px;margin-top:10px}
+.if-memo{min-width:0}
+.name-preview{margin:14px 0 0;padding:10px 14px;border-radius:10px;background:#f2f6ff;border:1px solid #dbe5ff;font-size:14px;font-weight:600;color:#2447c9}
+.name-preview:empty{display:none}
+.if-foot{display:flex;align-items:center;gap:14px 18px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.if-foot .check{margin:0}
+.if-foot p{margin:0;flex:1;min-width:220px;font-size:12px}
+.if-foot button.primary{width:auto;min-width:200px}
+#delete-item{width:auto!important;margin-top:0!important}
+.audit-box{padding:0!important}
+.audit-box>summary{display:flex;align-items:center;gap:12px;min-height:54px;padding:12px 22px;cursor:pointer;list-style:none;font-size:16px}
+.audit-box>summary::-webkit-details-marker{display:none}
+.audit-box>summary small{color:var(--muted);font-size:12.5px;flex:1}
+.audit-box>summary::after{content:"▾";color:var(--muted);font-size:14px}
+.audit-box[open]>summary::after{content:"▴"}
+.audit-box[open]>summary{border-bottom:1px solid var(--line)}
+.audit-box>fieldset,.audit-box>p{margin-left:22px;margin-right:22px}
+.audit-box>fieldset{max-width:640px;margin-bottom:22px}
+@media (max-width:1100px){.if-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:860px){.if-main{grid-template-columns:1fr}.if-photo .ph-empty{flex-direction:row;text-align:left}.if-photo .ph-has{flex-direction:row}.if-photo .ph-thumb{width:96px;height:96px}}
+@media (max-width:560px){.if-grid{grid-template-columns:1fr!important}.if-foot button.primary{width:100%}.item-card{padding:16px}}
+#stock-list .sc-group .sc-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:2px;align-self:center;border:1px solid #c9ced6}
+.qrm .ql-m{display:block;font-size:12px;font-weight:700;color:#2447c9;margin-bottom:2px}
+.qrm .ql-sub{display:block;font-size:12px;color:var(--muted);margin-top:4px}
+#history .h-memo-btn{width:auto;min-height:30px;padding:3px 10px;margin-top:6px;font-size:12.5px;font-weight:600;border-radius:8px;background:#fff;border:1px solid var(--line);color:#4a515c;cursor:pointer}
+@media (max-width:720px){#history .h-memo-btn{min-height:38px}}
+</style>
 
 <section id="company-login" aria-label="회사 재고관리 접속">
 <img class="login-logo" src="data:image/png;base64,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" alt="Archi Cell" width="384" height="169"><small>ARCHICELL / STOCK</small><h1>회사 재고관리</h1><p>처음 한 번만 인증하면, 다음부터 바로 재고관리 화면이 열립니다.</p>
@@ -805,19 +844,7 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
 <section id="view-history" class="hidden"><div class="card"><p class="muted">작업자는 본인 입출고만 취소할 수 있습니다. 실사 이전 기록은 취소할 수 없습니다.</p><div class="grid"><div><label for="log-type">처리 종류</label><select id="log-type" onchange="renderHistory()"><option value="">전체</option><option>입고</option><option>출고</option><option>절단출고</option><option>절단입고</option><option>취소</option><option>실사조정</option><option>기초재고</option></select></div><div><label for="log-search">품목·크기·길이·코드·작업자·메모 검색</label><input id="log-search" oninput="renderHistory()" placeholder="예: 3060 · 940 · 실버 · 강세윤" autocomplete="off"></div></div><div class="h-tools" id="h-tools"><div class="h-seg" role="group" aria-label="기간"><button type="button" class="h-chip" data-hp="all" onclick="histSet('period','all')">전체</button><button type="button" class="h-chip" data-hp="today" onclick="histSet('period','today')">오늘</button><button type="button" class="h-chip" data-hp="week" onclick="histSet('period','week')">이번 주</button><button type="button" class="h-chip" data-hp="month" onclick="histSet('period','month')">이번 달</button></div><div class="h-seg" role="group" aria-label="보기 옵션"><button type="button" class="h-chip" id="h-mine" aria-pressed="false" onclick="histToggle('mine')">내 기록만</button><button type="button" class="h-chip" id="h-cancel" aria-pressed="false" onclick="histToggle('showCancel')">취소 내역 보기</button><button type="button" class="h-chip" id="h-base" aria-pressed="false" onclick="histToggle('showBase')">기초재고 보기</button></div><button type="button" class="h-chip h-csv" onclick="histCsv()">엑셀(CSV) 내려받기</button></div><p id="log-summary" class="log-summary"></p><div class="tablewrap" id="history"></div></div></section>
 
 <!-- 관리 -->
-<section id="view-manage" class="hidden"><div class="management-layout"><div class="card"><h1>재고 실사·조정</h1><p class="muted">세는 동안 자재 이동을 잠시 멈춰주세요. 확인 중 입출고가 생기면 다시 확인하도록 안내합니다.</p>
-<fieldset id="audit-fields" disabled><label for="audit-sku">실사 품목</label><select id="audit-sku" onchange="auditChanged()"></select>
-<div id="audit-len-wrap" class="hidden"><label for="audit-len">길이</label><select id="audit-len" onchange="auditLenChanged()"></select><input id="audit-len-new" class="hidden" type="number" inputmode="numeric" min="1" max="100000" step="1" placeholder="새 길이 (mm)" oninput="auditLenChanged()" style="margin-top:6px"></div><p id="audit-current" class="muted"></p><label for="count">직접 센 수량 (<span id="audit-unit">EA</span>)</label><input id="count" type="number" min="0" max="1000000" step="1" inputmode="numeric"><label for="audit-reason">조정 사유 (필수)</label><input id="audit-reason" maxlength="250" placeholder="예: 마감 실사, 출고 기록 누락 확인"><button class="primary" onclick="submitAudit()">실사 수량으로 조정</button></fieldset></div>
-<div class="card"><h2>품목 등록·수정</h2><fieldset id="item-fields" disabled><label for="edit-sku">관리할 품목</label><select id="edit-sku" onchange="editChanged()"><option value="">새 품목 등록</option></select>
-<div class="form-sec">기본 정보</div>
-<div class="grid"><div><label for="item-code">품목코드</label><input id="item-code" maxlength="40" placeholder="예: QL-310" autocapitalize="characters"></div>
-<div><label for="item-order">주문코드 (M코드)</label><input id="item-order" maxlength="20" placeholder="예: M187" autocapitalize="characters"></div>
-<div><label for="item-kind">종류</label><input id="item-kind" oninput="updateNamePreview()" maxlength="30" list="kind-list" placeholder="골라도 되고 직접 써도 돼요" autocomplete="off"><datalist id="kind-list"><option value="프로파일"><option value="R반원"><option value="R코너"><option value="브라켓"><option value="볼트·너트"><option value="기타"></datalist></div>
-<div><label for="item-size">크기</label><input id="item-size" oninput="updateNamePreview()" maxlength="30" placeholder="예: 20x40"></div>
-<div><label for="item-color">색상</label><input id="item-color" oninput="updateNamePreview()" maxlength="8" list="color-list" placeholder="예: 블랙 / 실버 (없으면 비움)" autocomplete="off"><datalist id="color-list"><option value="블랙"><option value="실버"><option value="화이트"></datalist></div>
-<div><label for="item-spec">두께 (선택)</label><input id="item-spec" maxlength="100" placeholder="예: 1.8mm"></div></div>
-<p id="name-preview" class="muted" style="font-size:11px;margin:8px 0 0"></p>
-<div class="form-sec">사진</div>
+<section id="view-manage" class="hidden"><div class="management-layout"><div class="card item-card"><h2>품목 등록·수정</h2><fieldset id="item-fields" disabled><div class="if-top"><label for="edit-sku">관리할 품목</label><select id="edit-sku" onchange="editChanged()"><option value="">새 품목 등록</option></select></div><div class="if-main"><div class="if-photo"><div class="form-sec">사진</div>
 <div id="ph-zone" class="ph-zone" tabindex="0" aria-label="품목 사진 등록. 사진 등록 버튼으로 고르거나, 이미지를 끌어다 놓거나, 이 영역을 누른 뒤 Ctrl+V로 붙여넣을 수 있습니다.">
  <div id="ph-empty" class="ph-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 8"/></svg>
   <div><b id="ph-title">사진을 선택하거나 여기에 드래그하세요</b><small id="ph-tip">이미지를 복사한 후 Ctrl+V로 붙여넣을 수도 있습니다.</small></div>
@@ -828,20 +855,14 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
 </div>
 <input id="ph-file" type="file" accept="image/*" hidden>
 <details class="ph-url"><summary>사진 주소로 넣기 (보조)</summary><label for="item-photo" class="hidden">사진 주소</label><input id="item-photo" maxlength="500" placeholder="https://… 구글 드라이브 공유 링크도 됩니다" autocomplete="off"></details>
-<div class="form-sec">보관</div>
-<div class="grid"><div><label for="item-location">보관 위치</label><input id="item-location" maxlength="60" placeholder="A구역 1번 랙"></div>
-<div><label for="item-safety">부족 알림 기준 (이하)</label><input id="item-safety" type="number" min="0" max="1000000" step="1" value="0"></div>
-<div><label for="item-unit">단위</label><input id="item-unit" maxlength="20" value="EA" list="unit-list" placeholder="EA / 박스 / 봉"><datalist id="unit-list"><option value="EA"><option value="박스"><option value="봉"><option value="세트"></datalist></div>
-<div id="base-wrap"><label for="item-base">기본 길이 (mm)</label><input id="item-base" type="number" inputmode="numeric" min="1" max="100000" step="1" placeholder="길이 관리 안 하면 비움"><small id="base-note" class="muted"></small></div>
-<div id="initial-wrap"><label for="item-start">처음 수량 (기본 길이 기준)</label><input id="item-start" type="number" min="0" max="1000000" step="1" value="0"></div>
-<div class="hidden"><select id="item-category"><option>원장</option><option>기타 자재</option><option>확인 필요</option></select></div></div>
-<div id="code-note" class="hidden muted" style="font-size:11px;margin-top:6px">품목코드를 바꾸면 기존 입출고 기록과 예전 QR이 새 코드로 그대로 연결됩니다. 라벨은 새로 뽑는 걸 권장해요.</div>
-<div id="count-wrap" class="hidden" style="background:#f5f4f0;border-radius:12px;padding:14px 15px;margin-top:14px">
+</div><div class="if-fields"><div class="form-sec">기본 정보</div><div class="grid if-grid"><div><label for="item-code">품목코드</label><input id="item-code" maxlength="40" placeholder="예: QL-310" autocapitalize="characters"></div><div><label for="item-order">주문코드 (M코드)</label><input id="item-order" maxlength="20" placeholder="예: M187" autocapitalize="characters"></div><div><label for="item-kind">종류</label><input id="item-kind" oninput="updateNamePreview()" maxlength="30" list="kind-list" placeholder="골라도 되고 직접 써도 돼요" autocomplete="off"><datalist id="kind-list"><option value="프로파일"><option value="R반원"><option value="R코너"><option value="브라켓"><option value="볼트·너트"><option value="기타"></datalist></div><div><label for="item-size">크기</label><input id="item-size" oninput="updateNamePreview()" maxlength="30" placeholder="예: 20x40"></div><div><label for="item-color">색상</label><input id="item-color" oninput="updateNamePreview()" maxlength="8" list="color-list" placeholder="예: 블랙 / 실버 (없으면 비움)" autocomplete="off"><datalist id="color-list"><option value="블랙"><option value="실버"><option value="화이트"></datalist></div><div><label for="item-spec">두께 (선택)</label><input id="item-spec" maxlength="100" placeholder="예: 1.8mm"></div><div><label for="item-unit">단위</label><input id="item-unit" maxlength="20" value="EA" list="unit-list" placeholder="EA / 박스 / 봉"><datalist id="unit-list"><option value="EA"><option value="박스"><option value="봉"><option value="세트"></datalist></div><div id="base-wrap"><label for="item-base">기본 길이 (mm)</label><input id="item-base" type="number" inputmode="numeric" min="1" max="100000" step="1" placeholder="길이 관리 안 하면 비움"><small id="base-note" class="muted"></small></div><div id="initial-wrap"><label for="item-start">처음 수량 (기본 길이 기준)</label><input id="item-start" type="number" min="0" max="1000000" step="1" value="0"></div><div><label for="item-safety">부족 알림 기준 (이하)</label><input id="item-safety" type="number" min="0" max="1000000" step="1" value="0"></div><div><label for="item-location">보관 위치</label><input id="item-location" maxlength="60" placeholder="A구역 1번 랙"></div><div class="if-memo"><label for="item-memo">비고 (선택)</label><input id="item-memo" maxlength="250" placeholder="필요한 내용만 입력하세요"></div><div class="hidden"><select id="item-category"><option>원장</option><option>기타 자재</option><option>확인 필요</option></select></div></div><p id="name-preview" class="name-preview"></p><div id="code-note" class="hidden muted" style="font-size:11px;margin-top:6px">품목코드를 바꾸면 기존 입출고 기록과 예전 QR이 새 코드로 그대로 연결됩니다. 라벨은 새로 뽑는 걸 권장해요.</div></div></div><div id="count-wrap" class="hidden" style="background:#f5f4f0;border-radius:12px;padding:14px 15px;margin-top:14px">
 <label style="margin-top:0">현재 수량 · 실제 개수와 다르면 고쳐주세요</label>
 <div id="count-list" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px"></div>
 <p class="muted" style="font-size:11px;margin:8px 0 0">바꾼 수량은 '실사조정'으로 기록에 남습니다. 새 길이 추가는 입출고 창에서 입고로 해주세요.</p></div>
 <div id="photo-upload-wrap" class="hidden" style="display:none!important"><label for="item-photo-file">사진 올리기 · 휴대폰 카메라 가능</label><input id="item-photo-file" type="file" accept="image/*" onchange="uploadPhoto()"><small class="muted">올리면 바로 저장됩니다. 구글 드라이브 'ARCHICELL 자재사진' 폴더에 보관돼요.</small></div>
-<label for="item-memo">비고 (선택)</label><input id="item-memo" maxlength="250" placeholder="필요한 내용만 입력하세요"><label class="check"><input id="item-active" type="checkbox" checked>사용 중</label><p class="muted">품목 저장을 한 번 누르면 코드·정보·수량이 함께 저장됩니다.</p><button class="primary" onclick="submitItem()">품목 저장</button><button id="delete-item" class="hidden" style="width:100%;margin-top:10px" onclick="deleteItem()">재고·이력 없는 품목 삭제</button></fieldset></div></div></section>
+<div class="if-foot"><label class="check"><input id="item-active" type="checkbox" checked>사용 중</label><p class="muted">품목 저장을 한 번 누르면 코드·정보·수량이 함께 저장됩니다.</p><button class="primary" onclick="submitItem()">품목 저장</button><button id="delete-item" class="hidden" style="width:100%;margin-top:10px" onclick="deleteItem()">재고·이력 없는 품목 삭제</button></div></fieldset></div><details class="card audit-box" id="audit-box"><summary><b>재고 실사·조정</b><small>자주 쓰지 않아요 · 눌러서 열기</small></summary><p class="muted">세는 동안 자재 이동을 잠시 멈춰주세요. 확인 중 입출고가 생기면 다시 확인하도록 안내합니다.</p>
+<fieldset id="audit-fields" disabled><label for="audit-sku">실사 품목</label><select id="audit-sku" onchange="auditChanged()"></select>
+<div id="audit-len-wrap" class="hidden"><label for="audit-len">길이</label><select id="audit-len" onchange="auditLenChanged()"></select><input id="audit-len-new" class="hidden" type="number" inputmode="numeric" min="1" max="100000" step="1" placeholder="새 길이 (mm)" oninput="auditLenChanged()" style="margin-top:6px"></div><p id="audit-current" class="muted"></p><label for="count">직접 센 수량 (<span id="audit-unit">EA</span>)</label><input id="count" type="number" min="0" max="1000000" step="1" inputmode="numeric"><label for="audit-reason">조정 사유 (필수)</label><input id="audit-reason" maxlength="250" placeholder="예: 마감 실사, 출고 기록 누락 확인"><button class="primary" onclick="submitAudit()">실사 수량으로 조정</button></fieldset></details></div></section>
 
 <!-- QR 라벨 -->
 <section id="view-labels" class="hidden"><div class="card label-layout"><div class="noprint label-settings"><span class="section-kicker">LABEL STUDIO</span><h1>보관대 QR 라벨</h1><p class="muted">품목마다 QR 하나만 붙이면 됩니다. 찍으면 출고·입고 버튼이 함께 열립니다. 예전에 뽑은 QR도 그대로 쓸 수 있습니다.</p><label for="label-sku">인쇄할 품목</label><select id="label-sku" onchange="renderLabels()"></select><p class="pill">품목당 QR 1개 · 입고·출고 공용</p><button id="print" onclick="window.print()" style="width:100%;margin-top:6px" disabled>라벨 인쇄</button><p id="qr-status" class="muted"></p></div><div id="labels" class="labels"></div></div></section>
@@ -1691,7 +1712,7 @@ uiOverview=function(){
 /* --- 재고 목록: 품목명 크게 · 코드/부가정보 한 줄 · 합계 오른쪽 고정 --- */
 stockRow=function(i){
   const ls=visibleLengths(i),u=esc(unitOf(i)),low=isLow(i);
-  const title=[kindOf(i),i.size,colorOf(i)].filter(Boolean).join(' ')||i.name;
+  const title=nameOf(kindOf(i),i.size,colorOf(i))||i.name;
   const meta=[
     '<span class="sr-code">'+esc(i.code)+'</span>',
     i.spec?'<span>두께 '+esc(i.spec)+'</span>':'',
@@ -1991,9 +2012,10 @@ renderHistory=function(){
         '<td class="h-item"><b class="h-name">'+esc(histTitle(r,it))+'</b>'+(sub?'<span class="h-sub">'+sub+'</span>':'')+'<span class="h-code">'+codes+'</span></td>'+
         '<td class="h-type"><span class="h-badge">'+esc(r.type)+'</span>'+extra+'</td>'+
         '<td class="h-qty"><b class="h-delta">'+(r.delta>0?'+':r.delta<0?'−':'')+fmt(Math.abs(r.delta))+'<i>'+u+'</i></b><small>처리 후 품목 전체 '+fmt(r.stock)+u+'</small></td>'+
-        '<td class="h-who"><b>'+esc(r.operator)+'</b>'+(r.memo?'<span>'+esc(r.memo)+'</span>':'')+'<span class="h-date-m">'+dateM+'</span></td>'+
+        '<td class="h-who"><b>'+esc(r.operator)+'</b>'+(r.memo?'<span>'+esc(r.memo)+'</span>':'')+'<span class="h-date-m">'+dateM+'</span>'+(r.canMemo?'<button type="button" class="h-memo-btn" data-memo="'+esc(r.id)+'">'+(r.memo?'메모 수정':'메모 추가')+'</button>':'')+'</td>'+
         '<td class="h-cancel">'+histCancelCell(r)+'</td></tr>';
     }).join('')+'</tbody></table>'+(left>0?'<div class="h-more"><button type="button" onclick="histMore()">더 보기 (남은 '+fmt(left)+'건)</button></div>':'');
+  el('history').querySelectorAll('[data-memo]').forEach(b=>{b.disabled=frozen();b.onclick=()=>{if(frozen())return;const r=db.recent.find(x=>x.id===b.dataset.memo);if(!r)return;const v=prompt((r.code||'')+(r.length?' '+r.length+'mm ':' ')+r.type+' 기록의 메모를 입력하세요.\n비우고 확인하면 메모가 지워집니다.',r.memo||'');if(v===null)return;apiCall('updateLogMemo',{target:r.id,memo:v.trim()},{busy:'메모 저장 중…',done:'메모가 저장되었습니다'});};});
   // 취소 버튼: 기존 v3.x와 같은 동작
   el('history').querySelectorAll('[data-cancel]').forEach(b=>{b.disabled=frozen();b.onclick=()=>{if(frozen())return;const r=db.recent.find(x=>x.id===b.dataset.cancel);const reason=prompt(r.code+' '+(r.length?r.length+'mm ':'')+r.type+' '+r.quantity+unitOf(r)+(r.type==='절단출고'?' (잘라서 입고된 길이도 함께)':'')+' 기록을 취소합니다.\n취소 사유를 입력하세요.','기록 정정');if(reason&&reason.trim())begin('cancelTransaction',{target:r.id,reason:reason});};});
 };
@@ -2065,15 +2087,66 @@ uiStockRows=function(items){
   stockRowsBase(arr.map(x=>x.it));
   if(!arr.length)return;
   const order=[],count={};
-  arr.forEach(x=>{const k=x.r.g===0?x.r.label+' 프로파일':x.r.label;if(!(k in count)){count[k]=0;order.push({k:k,code:x.it.code});}count[k]++;});
+  arr.forEach(x=>{const k=x.r.label;if(!(k in count)){count[k]=0;order.push({k:k,code:x.it.code});}count[k]++;});
   if(order.length<2)return;
   const kids=Array.from(root.children);
   order.forEach(o=>{
     const row=kids.find(n=>n.dataset&&n.dataset.code===o.code);if(!row)return;
-    const h=document.createElement('div');h.className='sc-group';h.innerHTML='<b>'+esc(o.k)+'</b><span>'+fmt(count[o.k])+'품목</span>';
+    const h=document.createElement('div');h.className='sc-group';const dots={'실버':'#c4cad2','블랙':'#1d2120','화이트':'#ffffff'},sub={'실버':'기본색','블랙':'특수색'}[o.k]||'';h.innerHTML=(o.k==='부속품·기타'?'':'<i class="sc-dot" style="background:'+(dots[o.k]||'#e3e6ea')+'"></i>')+'<b>'+esc(o.k)+'</b><span>'+(sub?sub+' · ':'')+fmt(count[o.k])+'품목</span>';
     root.insertBefore(h,row);
   });
 };
 if(db)renderStock();
+
+/* ===== v3.10 품목명 규칙 · 크기 자동 괄호 · QR 라벨 =====
+   - 서버(Code v3.10)와 같은 규칙입니다. 화면 표시만 바뀌고 시트 데이터는 그대로입니다.
+   - 품목명 = 종류 + (크기) + 색상. 종류에 크기 숫자가 있으면("3030 프로파일") 크기는 붙이지 않고, 기본색 실버는 생략합니다. */
+function sizeFmt(v){
+  const raw=String(v==null?'':v).trim(),t=raw.replace(/[()（）\s]/g,'').replace(/[*×xX]/g,'x');
+  return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(t)?'('+t+')':raw.replace(/\s*[*×xX]\s*/g,'x');
+}
+function sizeInText(size,text){
+  const core=sizeFmt(size).replace(/[()]/g,'').toLowerCase();if(!core)return true;
+  const t=String(text||'').replace(/[()（）\s]/g,'').replace(/[*×X]/g,'x').toLowerCase();
+  return t.indexOf(core)>=0||t.indexOf(core.replace('x',''))>=0;
+}
+function nameOf(kind,size,color){
+  const k=String(kind||'').trim(),sz=sizeFmt(size),c=String(color||'').trim();
+  return [k,(sz&&!sizeInText(sz,k))?sz:'',(c&&c!=='실버')?c:''].filter(Boolean).join(' ');
+}
+updateNamePreview=function(){
+  const n=nameOf(el('item-kind').value,el('item-size').value,el('item-color').value);
+  el('name-preview').textContent=n?'시트 품목명은 이렇게 저장돼요: '+n:'';
+};
+qeName=function(){
+  const n=nameOf(el('qe-kind').value,el('qe-size').value,el('qe-color').value);
+  el('qe-name').textContent=n?'시트 품목명은 이렇게 저장돼요: '+n:'';
+};
+['item-size','qe-size'].forEach(function(id){
+  const f=el(id);if(!f)return;
+  f.addEventListener('blur',function(){const v=sizeFmt(f.value);if(v!==f.value){f.value=v;if(id==='item-size')updateNamePreview();else qeName();}});
+});
+histTitle=function(r,it){
+  const base=String(r.name||'').trim()||(it?it.name:'')||r.code,n=histNorm(base),add=[];
+  if(it&&it.size&&!sizeInText(it.size,base))add.push(sizeFmt(it.size));
+  const c=it?colorOf(it):'';if(c&&c!=='실버'&&!n.includes(histNorm(c))&&!(c==='블랙'&&/검정|흑색/.test(base)))add.push(c);
+  return histSize([base].concat(add).join(' '));
+};
+renderLabels=function(){
+  el('print').disabled=true;el('labels').innerHTML='';if(!db)return;
+  if(!/^https:\/\//.test(db.appUrl)){el('qr-status').textContent='정식 배포된 /exec 주소에서 라벨을 만드세요.';return;}
+  try{
+    const code=el('label-sku').value,items=db.items.filter(i=>i.active&&(!code||i.code===code));
+    el('labels').innerHTML=items.map(i=>{
+      const title=nameOf(kindOf(i),i.size,colorOf(i))||i.name,sz=(i.size&&title.indexOf(sizeFmt(i.size))<0)?sizeFmt(i.size):'';
+      const sub=[sz,i.spec].filter(Boolean).join(' · ');
+      return '<article class="qrlabel"><div class="qrsvg">'+qrSvg(itemUrl(i.code))+'</div><div class="qrm">'+
+        (i.orderCode?'<small class="ql-m">'+esc(i.orderCode)+'</small>':'')+
+        '<small style="display:block">ARCHICELL / STOCK</small><b>'+esc(i.code)+'</b><span>'+esc(title)+'</span>'+
+        (sub?'<small class="ql-sub">'+esc(sub)+'</small>':'')+(i.location?'<small class="ql-sub">'+esc(i.location)+'</small>':'')+'</div></article>';
+    }).join('');
+    el('qr-status').textContent=items.length+'품목 · QR '+items.length+'개 · 수량을 누르기 전에는 재고가 바뀌지 않습니다.';el('print').disabled=!items.length;
+  }catch(e){el('qr-status').textContent=e.message;}
+};
 </script>
 </body></html>

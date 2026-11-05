@@ -1,4 +1,4 @@
-// ARCHICELL Code v3.9 (v3.8 + 사진 저장 권한 오류 수정) — v3.6 큰 사진 · v3.0 길이별 재고
+// ARCHICELL Code v3.10 (v3.9 + 품목명 규칙 · 크기 자동 괄호 · 기록 메모 수정) / v3.9 (v3.8 + 사진 저장 권한 오류 수정) — v3.6 큰 사진 · v3.0 길이별 재고
 /*
  * v3.9 변경 요약 (v3.8에서 바뀐 부분 · 사진 저장만 바뀜, 재고·입출고 기록 계산은 그대로)
  * - 사진 폴더를 '이름으로 검색'하지 않습니다. 이 검색에 드라이브 읽기 권한이 따로 필요해
@@ -397,7 +397,7 @@ function state_(){
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
 function getDashboard(accessToken){return locked_(function(){
   const user=auth_(accessToken),s=state_(),canceled=new Set(s.logs.filter(r=>r[4]==='취소').map(r=>String(r[10])));
-  const recent=s.logs.slice(-100).reverse().map(r=>({id:String(r[1]),date:r[0] instanceof Date?Utilities.formatDate(r[0],'Asia/Seoul','MM-dd HH:mm:ss'):String(r[0]),code:String(r[2]),name:String(r[3]),type:String(r[4]),quantity:Number(r[5]),delta:Number(r[6]),operator:String(r[7]),memo:String(r[8]||''),stock:Number(r[9]),unit:s.items.find(i=>i.code===resolveCode_(r[2],s.directAliases))?.unit||'EA',currentCode:resolveCode_(r[2],s.directAliases),canceled:canceled.has(String(r[1])),length:Number(r[13])||0,canCancel:['입고','출고','절단출고'].includes(r[4])&&!canceled.has(String(r[1]))&&(user.admin||r[12]===user.email)}));
+  const recent=s.logs.slice(-100).reverse().map(r=>({id:String(r[1]),date:r[0] instanceof Date?Utilities.formatDate(r[0],'Asia/Seoul','MM-dd HH:mm:ss'):String(r[0]),code:String(r[2]),name:String(r[3]),type:String(r[4]),quantity:Number(r[5]),delta:Number(r[6]),operator:String(r[7]),memo:String(r[8]||''),stock:Number(r[9]),unit:s.items.find(i=>i.code===resolveCode_(r[2],s.directAliases))?.unit||'EA',currentCode:resolveCode_(r[2],s.directAliases),canceled:canceled.has(String(r[1])),length:Number(r[13])||0,canCancel:['입고','출고','절단출고'].includes(r[4])&&!canceled.has(String(r[1]))&&(user.admin||r[12]===user.email),canMemo:!!(user.admin||r[12]===user.email)}));
   return {items:s.items,recent:recent,aliases:Object.assign({},s.aliases),user:user,appUrl:publicUrl_()||ScriptApp.getService().getUrl()||'',warnings:user.admin?dashboardWarnings_(s):[],timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss')};
 });}
 // [v2.6 변경 D] 공백/대소문자 통일, 영문 1자 이상 필수.
@@ -405,6 +405,37 @@ function normalizeCode_(v){return String(v??'').replace(/\s+/g,'').toUpperCase()
 function code_(v){const c=normalizeCode_(v);if(!/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(c)||!/[A-Z]/.test(c))fail_('품목코드는 영문을 1자 이상 포함한 2~40자(영문·숫자·-·_)로 입력하세요. 예: 3060-BK-2250');return c;}
 function displayUnit_(v){const unit=String(v||'EA').trim();return unit.toUpperCase()==='EA'||unit==='본'?'EA':unit;}
 function int_(v,min){if(v===''||v===null||v===undefined)fail_('수량을 입력하세요.');const n=Number(v);if(!Number.isSafeInteger(n)||n<min||n>1000000)fail_('수량은 '+min+'~1,000,000 사이의 정수입니다.');return n;}
+// v3.10 크기 표기: 30x30 · 30*30 · 30 × 30 → (30x30). 숫자x숫자 모양이 아니면 예전처럼 x만 통일합니다.
+function sizeFmt_(v){
+  const raw=String(v==null?'':v).trim(),t=raw.replace(/[()（）\s]/g,'').replace(/[*×xX]/g,'x');
+  return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(t)?'('+t+')':raw.replace(/\s*[*×xX]\s*/g,'x');
+}
+// v3.10 품목명: 종류 + (크기) + 색상. 종류에 이미 크기 숫자가 있으면(예: "3030 프로파일") 크기는 붙이지 않고,
+// 기본색 실버는 이름에 붙이지 않습니다(블랙 등 다른 색만 붙임).
+function itemName_(kind,size,color){
+  const k=String(kind||'').trim(),sz=sizeFmt_(size),core=sz.replace(/[()]/g,'').toLowerCase();
+  const kn=k.replace(/[()（）\s]/g,'').replace(/[*×X]/g,'x').toLowerCase();
+  const has=!!core&&(kn.indexOf(core)>=0||kn.indexOf(core.replace('x',''))>=0);
+  const c=String(color||'').trim();
+  return [k,(core&&!has)?sz:'',(c&&c!=='실버')?c:''].filter(Boolean).join(' ');
+}
+// v3.10 기록 메모 수정: 메모 칸만 바꿉니다(수량·재고·기록은 그대로). 이전 메모는 셀 메모(노트)에 남깁니다.
+function updateLogMemo(p, accessToken){return locked_(function(){
+  const u=auth_(accessToken),s=state_(),target=txt_(p.target,100),memo=txt_(p.memo,250);
+  const row=s.logs.find(r=>String(r[1])===target);
+  if(!row)fail_('기록을 찾을 수 없습니다.');
+  if(!u.admin&&row[12]!==u.email)fail_('본인의 기록만 메모를 수정할 수 있습니다.');
+  const sh=getBook_().getSheetByName(CFG.LOG);
+  const head=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String);
+  let col=head.indexOf('메모')+1;if(col<1)col=9;
+  const range=sh.getRange(row.sheetRow,col),old=String(range.getValue()||'');
+  const code=resolveCode_(row[2],s.directAliases);
+  if(old===memo)return {code:code,unchanged:true};
+  range.setValue(memo?cell_(memo):'');
+  const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm'),prev=String(range.getNote()||'');
+  range.setNote((prev?prev+'\n':'')+stamp+' '+u.name+' 메모 수정 · 이전: '+(old||'(없음)'));
+  return {code:code};
+});}
 function txt_(v,max){return String(v||'').trim().slice(0,max);}
 function cell_(v){const s=String(v);return /^[\s]*[=+@-]/.test(s)?"'"+s:s;}
 function request_(p){const id=txt_(p.requestId,100);if(!/^[a-zA-Z0-9_-]{8,100}$/.test(id))fail_('요청 ID가 올바르지 않습니다.');return id;}
@@ -553,7 +584,7 @@ function saveItem(p, accessToken){return locked_(function(){
   // v3.5 종류·크기·색상으로 품목명을 자동으로 만듭니다(예: 프로파일 20x40 실버)
   const tidy=v=>String(v??'').replace(/\s+/g,' ').trim();
   const kind=p.kind===undefined?undefined:txt_(tidy(p.kind),30),color=p.color===undefined?undefined:txt_(tidy(p.color),8);
-  if(kind!==undefined){if(!kind)fail_('종류를 입력하세요. 예: 프로파일');p=Object.assign({},p,{name:[kind,tidy(p.size).replace(/\s*[*×X]\s*/g,'x'),color].filter(Boolean).join(' ')});}
+  if(kind!==undefined){if(!kind)fail_('종류를 입력하세요. 예: 프로파일');p=Object.assign({},p,{name:itemName_(kind,tidy(p.size),color)});}
   const state=state_(),code=code_(p.code),name=txt_(p.name,100),spec=txt_(p.spec,100),location=txt_(p.location,60),safety=int_(p.safety,0);
   if(!name)fail_('품목명을 입력하세요.');
   const sh=state.ss.getSheetByName(CFG.ITEMS),schema=itemSchema_(sh);requireItemSchema_(sh,schema);
@@ -565,7 +596,7 @@ function saveItem(p, accessToken){return locked_(function(){
   const memo=p.memo===undefined?String(existing?.[9]||''):txt_(p.memo,250);
   // v3.0 확장 칸
   const ex=schema.extra;
-  const size=p.size===undefined?String(existing&&ex.size>=0?existing[ex.size]:'').trim():txt_(p.size,30).replace(/\s*[*×xX]\s*/g,'x');
+  const size=p.size===undefined?String(existing&&ex.size>=0?existing[ex.size]:'').trim():sizeFmt_(txt_(p.size,30));
   const orderCode=p.orderCode===undefined?String(existing&&ex.order>=0?existing[ex.order]:'').trim():txt_(p.orderCode,20).toUpperCase();
   const photo=p.photo===undefined?String(existing&&ex.photo>=0?existing[ex.photo]:'').trim():photoUrl_(p.photo);
   const baseLength=p.baseLength===undefined?(existing&&ex.base>=0?lenCell_(existing[ex.base]):0):len_(p.baseLength,false);
@@ -749,7 +780,7 @@ function redirectPage_(base,sku,action){
 /** 새 앱 주소에서 보내는 요청 통로. 허용된 기능만 실행합니다. */
 function doPost(e){
   const api={loginCompany:loginCompany,getDashboard:getDashboard,saveTransaction:saveTransaction,adjustStock:adjustStock,
-    cancelTransaction:cancelTransaction,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
+    cancelTransaction:cancelTransaction,updateLogMemo:updateLogMemo,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
     cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto,uiMutate:uiMutate};
   let out;
   try{
@@ -1072,7 +1103,7 @@ function adjustMany_(code,counts,stockVersion,u,rid){return locked_(function(){
 function uiMutate(method, payload, accessToken) {
   const allowed = {
     saveTransaction: saveTransaction, cutStock: cutStock,
-    cancelTransaction: cancelTransaction, adjustStock: adjustStock,
+    cancelTransaction: cancelTransaction, adjustStock: adjustStock, updateLogMemo: updateLogMemo,
     saveItemAll: saveItemAll, saveItem: saveItem,
     renameItemCode: renameItemCode, deleteUnusedItem: deleteUnusedItem,
     uploadPhoto: uploadPhoto, setItemPhoto: setItemPhoto
