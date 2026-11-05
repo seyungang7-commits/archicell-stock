@@ -1,3 +1,12 @@
+// ARCHICELL Code v3.9 (v3.8 + 사진 저장 권한 오류 수정) — v3.6 큰 사진 · v3.0 길이별 재고
+/*
+ * v3.9 변경 요약 (v3.8에서 바뀐 부분 · 사진 저장만 바뀜, 재고·입출고 기록 계산은 그대로)
+ * - 사진 폴더를 '이름으로 검색'하지 않습니다. 이 검색에 드라이브 읽기 권한이 따로 필요해
+ *   "지정된 권한으로는 DriveApp.getFoldersByName을 호출할 수 없습니다" 오류가 났습니다.
+ *   이제 한 번 만든 폴더의 ID를 스크립트 속성(ARCHICELL_PHOTO_FOLDER_ID)에 저장해 그 폴더만 씁니다.
+ * - 새 함수 setupPhotoFolder: Apps Script 편집기에서 한 번 실행하면 드라이브 권한 승인 창이 뜨고 사진 폴더를 준비합니다.
+ * - 권한·저장 오류가 나면 무엇을 해야 하는지 알려주는 문구로 바꿨습니다. 실패해도 품목 정보는 바뀌지 않습니다.
+ */
 // ARCHICELL Code v3.6 (v3.5 + 큰 사진 저장 · 사진 주소 바꾸기/지우기) — v3.0 길이별 재고 · 크기/주문코드/사진 · 절단 기록
 /*
  * v3.6 변경 요약 (v3.5에서 바뀐 부분)
@@ -741,15 +750,17 @@ function redirectPage_(base,sku,action){
 function doPost(e){
   const api={loginCompany:loginCompany,getDashboard:getDashboard,saveTransaction:saveTransaction,adjustStock:adjustStock,
     cancelTransaction:cancelTransaction,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
-    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto};
+    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto,uiMutate:uiMutate};
   let out;
   try{
     const raw=String(e&&e.postData&&e.postData.contents||'');
     // 사진 올리기만 큰 요청을 허용합니다(휴대폰에서 줄여서 보냄).
-    if(raw.length>(raw.indexOf('"fn":"uploadPhoto"')>=0?4000000:100000))fail_('요청이 너무 큽니다.');
+    if(raw.length>4000000)fail_('요청이 너무 큽니다.');
     const body=JSON.parse(raw||'{}'),fn=String(body.fn||'');
     if(!Object.prototype.hasOwnProperty.call(api,fn))fail_('지원하지 않는 요청입니다.');
     const args=Array.isArray(body.args)?body.args.slice(0,4):[];
+    const photoRequest=fn==='uploadPhoto'||(fn==='uiMutate'&&args[0]==='uploadPhoto');
+    if(raw.length>(photoRequest?4000000:100000))fail_('요청이 너무 큽니다.');
     out={ok:true,result:api[fn].apply(null,args)};
   }catch(err){out={ok:false,error:String(err&&err.message||err)};}
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
@@ -838,17 +849,15 @@ function uploadPhoto(p, accessToken){
   if(!data||data.length>3800000||!/^[A-Za-z0-9+/=]+$/.test(data))fail_('사진 파일을 확인하세요. (최대 약 2.5MB)');
   const s=state_(),item=s.items.find(i=>i.code===resolveCode_(code,s.directAliases));if(!item)fail_('품목을 찾을 수 없습니다.');
   const sh=s.ss.getSheetByName(CFG.ITEMS),schema=itemSchema_(sh);requireItemSchema_(sh,schema);
-  const props=PropertiesService.getScriptProperties();
-  let folder=null;
-  try{const id=props.getProperty('ARCHICELL_PHOTO_FOLDER_ID');if(id)folder=DriveApp.getFolderById(id);}catch(e){folder=null;}
-  if(!folder){
-    const it=DriveApp.getFoldersByName(CFG.PHOTO_FOLDER);
-    folder=it.hasNext()?it.next():DriveApp.createFolder(CFG.PHOTO_FOLDER);
-    props.setProperty('ARCHICELL_PHOTO_FOLDER_ID',folder.getId());
-  }
-  const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyyMMdd-HHmmss');
-  const file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(data),'image/jpeg',item.code+'_'+stamp+'.jpg'));
-  // 로그인하지 않은 직원 휴대폰에서도 보이도록 '링크가 있는 사람 보기'로 둡니다.
+  // v3.9: 폴더 검색 없이 저장된 폴더 ID로 저장합니다. 드라이브 오류는 알아듣기 쉬운 문구로 바꿉니다.
+  let file;
+  try{
+    const folder=photoFolder_();
+    const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyyMMdd-HHmmss');
+    file=folder.createFile(Utilities.newBlob(Utilities.base64Decode(data),'image/jpeg',item.code+'_'+stamp+'.jpg'));
+  }catch(e){photoDriveFail_(e);}
+  if(!file||!file.getSize())fail_('사진 파일이 비어 있습니다. 다른 사진으로 다시 시도하세요.');
+  // 로그인하지 않은 직원 휴대폰에서도 보이도록 '링크가 있는 사람 보기'로 둡니다. (이 사진 파일 하나만 공유)
   try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){}
   const url='https://drive.google.com/thumbnail?id='+file.getId()+'&sz=w1600';
   return locked_(function(){
@@ -857,6 +866,33 @@ function uploadPhoto(p, accessToken){
     sh.getRange(index+2,schema.extra.photo+1).setValue(url);SpreadsheetApp.flush();
     return {ok:true,code:item.code,photo:url};
   });
+}
+
+/* ===================== v3.9 사진 폴더 ===================== */
+/** 사진 폴더: 저장해 둔 ID의 폴더를 쓰고, 없으면 새로 만들어 ID를 저장합니다. 폴더 이름으로 검색하지 않습니다. */
+function photoFolder_(){
+  const props=PropertiesService.getScriptProperties(),id=props.getProperty('ARCHICELL_PHOTO_FOLDER_ID');
+  if(id){
+    try{const f=DriveApp.getFolderById(id);if(!f.isTrashed())return f;}
+    catch(e){if(/권한|permission|scope|authoriz/i.test(String(e&&e.message||e)))throw e;}
+  }
+  const folder=DriveApp.createFolder(CFG.PHOTO_FOLDER);
+  props.setProperty('ARCHICELL_PHOTO_FOLDER_ID',folder.getId());
+  return folder;
+}
+/** 드라이브 오류를 사용자가 이해할 수 있는 문구로 바꿉니다. */
+function photoDriveFail_(e){
+  const m=String(e&&e.message||e);
+  if(m.indexOf('[확인]')>=0)throw e;
+  if(/권한|permission|scope|authoriz|auth\//i.test(m))
+    fail_('사진 저장 권한이 아직 승인되지 않았습니다. 관리자가 Apps Script 편집기에서 setupPhotoFolder 를 한 번 실행해 권한을 승인한 뒤, 새 버전으로 다시 배포해 주세요. (품목 정보는 바뀌지 않았습니다)');
+  fail_('사진을 구글 드라이브에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요. (품목 정보는 바뀌지 않았습니다) · '+m.slice(0,160));
+}
+/** [편집기에서 1회 실행] 드라이브 권한 승인 + 사진 폴더 준비. 실행 로그에 폴더 주소가 나옵니다. 기존 데이터는 건드리지 않습니다. */
+function setupPhotoFolder(){
+  const folder=photoFolder_();
+  const msg='사진 폴더 준비 완료: '+folder.getName()+' · '+folder.getUrl();
+  Logger.log(msg);return msg;
 }
 
 /* ===================== v3.6 사진 주소 바꾸기·지우기 ===================== */
@@ -1032,3 +1068,23 @@ function adjustMany_(code,counts,stockVersion,u,rid){return locked_(function(){
   writeLogs_(s,u,item,entries,signature_([u.email,item.code,'수량일괄',JSON.stringify(counts),stockVersion]));
   return entries.length;
 });}
+/* ===== v3.8 UI: 기존 저장 함수를 그대로 사용하고 확정 데이터를 같은 응답에 반환 ===== */
+function uiMutate(method, payload, accessToken) {
+  const allowed = {
+    saveTransaction: saveTransaction, cutStock: cutStock,
+    cancelTransaction: cancelTransaction, adjustStock: adjustStock,
+    saveItemAll: saveItemAll, saveItem: saveItem,
+    renameItemCode: renameItemCode, deleteUnusedItem: deleteUnusedItem,
+    uploadPhoto: uploadPhoto, setItemPhoto: setItemPhoto
+  };
+  if (!Object.prototype.hasOwnProperty.call(allowed, method)) fail_('지원하지 않는 저장 작업입니다.');
+  // 각 기존 함수에서 인증·권한·중복요청·재고 검증을 수행합니다.
+  // 여기서 추가 잠금을 잡지 않습니다(기존 함수의 잠금과 중첩 방지).
+  const result = allowed[method](payload, accessToken);
+  try {
+    return {result: result, dashboard: getDashboard(accessToken), refreshError: false};
+  } catch (e) {
+    // 저장 후 조회 오류를 저장 실패로 보내면 중복 입력을 유발할 수 있습니다.
+    return {result: result, dashboard: null, refreshError: true};
+  }
+}
