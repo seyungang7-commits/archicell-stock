@@ -15,7 +15,7 @@
 <style data-shell>
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif}
   .boot{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;box-sizing:border-box}
-  .boot img{width:120px;height:120px;border-radius:26px}
+  .boot img{width:128px;height:128px;border-radius:28px}
   .boot small{color:#bbb;font-size:12px}
   .spin{width:26px;height:26px;border:3px solid #ffffff33;border-top-color:#fff;border-radius:50%;animation:s .9s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
@@ -24,7 +24,7 @@
 </head>
 <body>
 <div class="boot" id="boot">
-  <img src="icon-192.png" alt="ARCHICELL">
+  <img src="icon-512.png" srcset="icon-192.png 192w, icon-512.png 512w" sizes="128px" alt="ARCHICELL" width="128" height="128">
   <div class="spin" id="spin"></div>
   <small id="boot-msg">재고 화면을 불러오는 중…</small>
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
