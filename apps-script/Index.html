@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
+<!-- ARCHICELL Index v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
 <!-- v3.8 간편 설정: 회사명·포인트 색·목록 사진 크기는 아래 세 값만 수정하세요. -->
@@ -577,6 +577,15 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
  .hd-menu{grid-area:menu;justify-self:end;border:0;background:transparent}
  .hd-menu svg{width:26px;height:26px}
  .hd-pad{display:none!important}
+}
+
+/* ===== v3.9.3 휴대폰 메뉴: ☰ 바로 아래 오른쪽 작은 메뉴 · 이름은 글자 · 나가기는 붉은 글자 ===== */
+@media(max-width:760px){
+ .hd-user{left:auto!important;right:max(10px,env(safe-area-inset-right,0px))!important;top:calc(max(10px,env(safe-area-inset-top,0px)) + 52px)!important;width:240px;max-width:calc(100vw - 20px);padding:12px!important;gap:10px!important;transform-origin:top right}
+ #identity{background:transparent!important;padding:2px 4px 0!important;text-align:left!important;font-size:15px!important;font-weight:650;color:var(--ink)!important}
+ #identity::before{content:"접속 중";display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-bottom:2px}
+ #company-logout{color:#c2410c!important;border-color:#f1d5c4!important;background:#fff!important;font-weight:650!important}
+ #company-logout:active{background:#fff4ec!important}
 }
 </style>
 
