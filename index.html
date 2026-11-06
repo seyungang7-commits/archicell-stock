@@ -30,7 +30,7 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.6 (QR 스캔·구글 시트 큰 버튼 줄)
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.7 (QR 스캔 즉시 열기 · 구글 시트 큰 버튼 줄)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
@@ -338,8 +338,24 @@ function openScanner(){
         const hit = skuFromText(text);
         if (hit){
           frame.classList.add('hit');
-          say('인식됨: ' + hit.sku + ' — 품목 화면을 여는 중…');
           try{ navigator.vibrate && navigator.vibrate(80); }catch(e){}
+          /* v2.9.7: 앱이 이미 열려 있고 재고 목록에 그 품목이 있으면, 페이지를 새로 열지 않고
+             바로 입출고 창을 엽니다(화면 파일 재다운로드·전체 재조회가 없어 즉시 열립니다).
+             목록에 없거나 열지 못하면 아래의 기존 방식(새로 열기)으로 넘어갑니다. */
+          try{
+            if (typeof db !== 'undefined' && db && typeof openSheet === 'function' && typeof canonicalCode === 'function'){
+              const item = db.items.find(x => x.active && x.code === canonicalCode(hit.sku));
+              if (item){
+                alive = false;
+                close();
+                if (typeof show === 'function') show('stock');
+                openSheet(item.code, null);
+                if (typeof sheetOpen === 'undefined' || sheetOpen) return;
+                alive = false;   // 열리지 않았으면 아래 새로 열기로 진행
+              }
+            }
+          }catch(e){}
+          say('인식됨: ' + hit.sku + ' — 품목 화면을 여는 중…');
           alive = false;
           if (stream) stream.getTracks().forEach(t => t.stop());
           const q = new URLSearchParams({sku: hit.sku});
