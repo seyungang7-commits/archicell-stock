@@ -1,3 +1,13 @@
+// ARCHICELL Code v3.13 (v3.12 + 길이구분: 원장·컷팅·잔재)
+/*
+ * v3.13 변경 요약 (재고 계산 방식은 그대로)
+ * - 품목 시트에 '길이구분' 열(제목으로 찾음, 지금은 R열)을 둡니다. 값 예: "2400:원장, 2250:컷팅, 940:컷팅"
+ *   원장 = 2400 원자재 그대로 / 컷팅 = 생산지에서 잘라서 입고 / 잔재 = 우리가 자르고 남은 것
+ * - 입고할 때 처음 들어오는 길이는 lengthKind(원장·컷팅·잔재)를 함께 보내면 기록됩니다(이미 정해진 길이는 바꾸지 않음).
+ * - 절단으로 처음 생긴 길이는 자동으로 '잔재'로 기록합니다(이미 정해진 길이는 그대로).
+ * - 품목 정보 저장(saveItem)에서 lengthKinds {길이:구분}을 보내면 길이구분을 바꿉니다(관리자).
+ * - getDashboard 품목의 lengths[]에 kind(구분)가 추가됩니다. 정해지지 않았으면 ''.
+ */
 // ARCHICELL Code v3.12 (v3.10 + 작업일 열 · 전체 기간 기록 조회 · 기록의 작업일 수정)
 /*
  * v3.12 변경 요약 (v3.10에서 바뀐 부분 · 재고 계산 방식은 그대로)
@@ -392,8 +402,9 @@ function state_(){
         map[mm]=(map[mm]||0)+bucket.sum[k];
         if(bucket.stocked[k])stockedMap[mm]=true;
       });
+      const lkinds=ex.lkind>=0?lkParse_(r[ex.lkind]):Object.create(null);  // v3.13 길이구분
       const lengths=Object.keys(map).map(Number).sort((a,b)=>b-a)
-        .map(mm=>({mm:mm,stock:map[mm],stocked:!!stockedMap[mm]}));
+        .map(mm=>({mm:mm,stock:map[mm],stocked:!!stockedMap[mm],kind:lkinds[mm]||''}));
       return {
         code:code,name:String(r[1]),spec:String(r[2]||''),unit:String(r[3]||'EA'),
         location:String(r[4]||''),start:start,stock:stock,safety:safety,
@@ -594,7 +605,11 @@ function saveTransaction(p, accessToken){return locked_(function(){
   if(item.stock<0)fail_('음수 재고입니다. 관리자 실사 조정이 필요합니다.');
   const length=itemLength_(item,rawLen);
   if(type==='출고'&&length&&!item.lengths.some(l=>l.mm===length&&l.stock>0))fail_(length+'mm 재고가 없습니다. 길이를 다시 확인하세요.');
-  return append_(s,u,id,item,type,qty,type==='입고'?qty:-qty,memo,'',sig,length,wd);
+  // v3.13 처음 들어오는 길이의 구분(원장·컷팅·잔재). 이미 정해진 길이는 바꾸지 않습니다.
+  const lk=lkKind_(p.lengthKind,true);
+  const res=append_(s,u,id,item,type,qty,type==='입고'?qty:-qty,memo,'',sig,length,wd);
+  if(type==='입고'&&length&&lk){try{lkSet_(item.code,{[length]:lk},true);}catch(e){}}
+  return res;
 });}
 function adjustStock(p, accessToken){return locked_(function(){
   const u=auth_(accessToken);admin_(u);const s=state_(),code=code_(p.code),count=int_(p.count,0),reason=txt_(p.reason,250),id=request_(p),version=String(p.version||'');
@@ -629,7 +644,10 @@ function cutStock(p, accessToken){return locked_(function(){
   const entries=[{id:id,type:'절단출고',qty:count,delta:-count,memo:memo,target:'',length:from,workDate:wd}]
     .concat(pieces.map((pc,k)=>({id:id+'_c'+(k+1),type:'절단입고',qty:pc.qty,delta:pc.qty,memo:memo,target:id,length:pc.length,workDate:wd})));
   const r=writeLogs_(s,u,item,entries,sig);
-  r.pieces=pieces;return r;
+  r.pieces=pieces;const cutRes=r;
+  // v3.13 절단으로 처음 생긴 길이는 '잔재'로 표시(이미 정해진 길이는 그대로)
+  try{const add={};pieces.forEach(pc=>{add[pc.length]='잔재';});lkSet_(item.code,add,true);}catch(e){}
+  return cutRes;
 });}
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
 // v3.0: 길이 기록 반영, 절단은 묶음(원래 길이 출고 + 잘린 길이 입고)을 한꺼번에 취소합니다.
@@ -700,7 +718,13 @@ function saveItem(p, accessToken){return locked_(function(){
     if(color!==undefined&&ex.color>=0)sh.getRange(index+2,ex.color+1).setValue(cell_(color));
     // F 초기재고 / G 수식 / A 품목코드는 수정하지 않음.
   }
-  SpreadsheetApp.flush();return {ok:true,code:code};
+  SpreadsheetApp.flush();
+  // v3.13 길이구분 수정 (정보 수정 화면)
+  if(p.lengthKinds&&typeof p.lengthKinds==='object'){
+    const upd={};Object.keys(p.lengthKinds).forEach(k=>{const mm=len_(k,true),v=lkKind_(p.lengthKinds[k],true);if(v)upd[mm]=v;});
+    if(Object.keys(upd).length)lkSet_(code,upd,false);
+  }
+  return {ok:true,code:code};
 });}
 /** 관리자 전용. 실제 입출고내역 행은 수정하지 않고 이전코드 → 신규코드 이력만 추가합니다. */
 function renameItemCode(p, accessToken){const user=auth_(accessToken);admin_(user);return renameCore_(p,user,false);}
@@ -770,7 +794,24 @@ function itemSchema_(sh){
 /** v3.0 확장 열(크기·기본길이·주문코드·사진)은 제목으로 찾습니다. 없으면 -1. */
 function itemExtra_(headers){
   const f=name=>{const m=[];headers.forEach((h,i)=>{if(String(h).trim()===name)m.push(i);});if(m.length>1)fail_('품목에 '+name+' 열 제목이 중복됩니다.');return m.length?m[0]:-1;};
-  return {size:f('크기'),base:f('기본길이(mm)'),order:f('주문코드'),photo:f('사진'),kind:f('종류'),color:f('색상')};
+  return {size:f('크기'),base:f('기본길이(mm)'),order:f('주문코드'),photo:f('사진'),kind:f('종류'),color:f('색상'),lkind:f('길이구분')};
+}
+/** v3.13 길이구분: 원장(2400 원자재) · 컷팅(생산지에서 잘라 입고) · 잔재(우리가 자르고 남은 것) */
+const LENGTH_KINDS=Object.freeze(['원장','컷팅','잔재']);
+function lkKind_(v,optional){const t=String(v??'').trim();if(!t&&optional)return '';if(!LENGTH_KINDS.includes(t))fail_('길이 구분은 원장 / 컷팅 / 잔재 중에서 고르세요.');return t;}
+function lkParse_(v){const o=Object.create(null);String(v??'').split(/[,;\n]/).forEach(x=>{const m=/^\s*(\d+)\s*(?:mm)?\s*[:=]\s*(원장|컷팅|잔재)\s*$/.exec(x);if(m)o[Number(m[1])]=m[2];});return o;}
+function lkFormat_(o){return Object.keys(o).map(Number).filter(n=>n>0).sort((a,b)=>b-a).map(k=>k+':'+o[k]).join(', ');}
+/** 품목의 길이구분 칸을 합쳐서 씁니다. onlyMissing=true면 이미 정해진 길이는 바꾸지 않습니다. 잠금 안에서 호출하세요. */
+function lkSet_(code,updates,onlyMissing){
+  const sh=getBook_().getSheetByName(CFG.ITEMS);
+  if(itemSchema_(sh).extra.lkind<0){addHeader_(sh,'길이구분');SpreadsheetApp.flush();}
+  const schema=itemSchema_(sh),col=schema.extra.lkind;if(col<0)return false;
+  const raw=rows_(sh,schema.headers.length),index=raw.findIndex(r=>normalizeCode_(r[0])===normalizeCode_(code));
+  if(index<0)return false;
+  const cur=lkParse_(raw[index][col]);let changed=false;
+  Object.keys(updates).forEach(k=>{const mm=Number(k),v=updates[k];if(!mm||!v)return;if(onlyMissing&&cur[mm])return;if(cur[mm]!==v){cur[mm]=v;changed=true;}});
+  if(changed){sh.getRange(index+2,col+1).setValue(lkFormat_(cur));SpreadsheetApp.flush();}
+  return changed;
 }
 function requireItemSchema_(sh,schema){if(sh.getLastColumn()<=schema.category||String(sh.getRange(1,schema.category+1).getDisplayValues()[0][0]).trim()!=='분류')fail_('먼저 setupInventory를 실행해 분류 열을 준비하세요.');
   const ex=schema.extra;if(ex.size<0||ex.base<0||ex.order<0||ex.photo<0)fail_('시트 메뉴 ARCHICELL 자재관리 > 길이 관리 전환 (v3, 1회)을 먼저 실행하세요.');}
