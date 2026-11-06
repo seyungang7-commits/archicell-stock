@@ -1,3 +1,14 @@
+// ARCHICELL Code v3.12 (v3.10 + 작업일 열 · 전체 기간 기록 조회 · 기록의 작업일 수정)
+/*
+ * v3.12 변경 요약 (v3.10에서 바뀐 부분 · 재고 계산 방식은 그대로)
+ * - 입출고내역에 '작업일' 열이 있으면(시트 P열, 제목 '작업일') 저장할 때 작업일을 함께 적습니다.
+ *   앱에서 날짜를 바꾸지 않으면 오늘 날짜가 들어갑니다. 열이 없으면 예전처럼 동작합니다.
+ * - 작업일은 오늘 또는 과거 400일 안의 날짜만 받습니다(미래 날짜 불가).
+ * - getHistory: 최근 100건 제한 없이 기간(시작일~종료일)으로 기록을 찾아 보냅니다(최대 3,000건).
+ * - updateLogMemo: 메모와 함께 작업일도 고칠 수 있습니다. 절단 기록은 잘라서 입고된 줄도 같은 작업일로 맞춥니다.
+ *   이전 값은 셀 메모(노트)에 남깁니다. 수량·재고는 바뀌지 않습니다.
+ * - getDashboard의 기록에 ymd(연도 포함 날짜)와 workDate(작업일)를 추가했습니다. 기존 date 형식은 그대로입니다.
+ */
 // ARCHICELL Code v3.10 (v3.9 + 품목명 규칙 · 크기 자동 괄호 · 기록 메모 수정) / v3.9 (v3.8 + 사진 저장 권한 오류 수정) — v3.6 큰 사진 · v3.0 길이별 재고
 /*
  * v3.9 변경 요약 (v3.8에서 바뀐 부분 · 사진 저장만 바뀜, 재고·입출고 기록 계산은 그대로)
@@ -45,6 +56,7 @@ const CFG = Object.freeze({
   RENAME_HEADERS: ['변경일시','기존코드','신규코드','작업자계정'],
   ITEM_EXTRA: ['크기','기본길이(mm)','주문코드','사진'],
   LOG_LENGTH: '길이(mm)',
+  LOG_WORKDATE: '작업일',
   PHOTO_FOLDER: 'ARCHICELL 자재사진'
 });
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
@@ -277,7 +289,9 @@ function logSchema_(sh){
   let actor=find('작업자계정');if(actor<0)actor=email>=0?email:need('작업자계정');
   // v3.0: 길이(mm) 열은 '길이 관리 전환' 메뉴가 만듭니다. 없으면 -1(길이 없이 동작).
   const length=find(CFG.LOG_LENGTH);
-  return {headers:headers,target:target,signature:signature,actor:actor,email:email,length:length};
+  // v3.12 작업일 열(선택). 없으면 -1.
+  const workDate=find(CFG.LOG_WORKDATE);
+  return {headers:headers,target:target,signature:signature,actor:actor,email:email,length:length,workDate:workDate};
 }
 /** v2.6.1: 숨겨진 열을 포함해 읽되, 실제 스프레드시트 행 번호를 함께 보존. */
 function readLogs_(sh){
@@ -293,7 +307,8 @@ function readLogs_(sh){
       source[schema.target]||'',
       source[schema.signature]||'',
       String(source[schema.actor]||(schema.email>=0?source[schema.email]:'')||'').trim().toLowerCase(),
-      schema.length>=0?lenCell_(source[schema.length]):0   // [13] 길이(mm), 0 = 길이 미기록
+      schema.length>=0?lenCell_(source[schema.length]):0,   // [13] 길이(mm), 0 = 길이 미기록
+      schema.workDate>=0?ymdCell_(source[schema.workDate]):''   // [14] v3.12 작업일(yyyy-MM-dd), '' = 미기록
     ]);
     // 배열 형식을 유지하므로 기존 취소/입출고/재고 처리 로직은 그대로 동작합니다.
     log.sheetRow=index+2;
@@ -396,10 +411,50 @@ function state_(){
 }
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
 function getDashboard(accessToken){return locked_(function(){
-  const user=auth_(accessToken),s=state_(),canceled=new Set(s.logs.filter(r=>r[4]==='취소').map(r=>String(r[10])));
-  const recent=s.logs.slice(-100).reverse().map(r=>({id:String(r[1]),date:r[0] instanceof Date?Utilities.formatDate(r[0],'Asia/Seoul','MM-dd HH:mm:ss'):String(r[0]),code:String(r[2]),name:String(r[3]),type:String(r[4]),quantity:Number(r[5]),delta:Number(r[6]),operator:String(r[7]),memo:String(r[8]||''),stock:Number(r[9]),unit:s.items.find(i=>i.code===resolveCode_(r[2],s.directAliases))?.unit||'EA',currentCode:resolveCode_(r[2],s.directAliases),canceled:canceled.has(String(r[1])),length:Number(r[13])||0,canCancel:['입고','출고','절단출고'].includes(r[4])&&!canceled.has(String(r[1]))&&(user.admin||r[12]===user.email),canMemo:!!(user.admin||r[12]===user.email)}));
+  const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);
+  const recent=s.logs.slice(-100).reverse().map(r=>logView_(r,s,user,canceled));
   return {items:s.items,recent:recent,aliases:Object.assign({},s.aliases),user:user,appUrl:publicUrl_()||ScriptApp.getService().getUrl()||'',warnings:user.admin?dashboardWarnings_(s):[],timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss')};
 });}
+function canceledSet_(s){return new Set(s.logs.filter(r=>r[4]==='취소').map(r=>String(r[10])));}
+/** 화면에 보내는 기록 한 줄. v3.12: ymd(연도 포함 처리일)·workDate(작업일) 추가, 기존 date 형식(MM-dd HH:mm:ss)은 유지. */
+function logView_(r,s,user,canceled){
+  const d=r[0] instanceof Date?r[0]:null,code=resolveCode_(r[2],s.directAliases);
+  return {id:String(r[1]),date:d?Utilities.formatDate(d,'Asia/Seoul','MM-dd HH:mm:ss'):String(r[0]),ymd:d?Utilities.formatDate(d,'Asia/Seoul','yyyy-MM-dd'):'',
+    workDate:r[14]||'',code:String(r[2]),name:String(r[3]),type:String(r[4]),quantity:Number(r[5]),delta:Number(r[6]),operator:String(r[7]),memo:String(r[8]||''),stock:Number(r[9]),
+    unit:s.items.find(i=>i.code===code)?.unit||'EA',currentCode:code,canceled:canceled.has(String(r[1])),length:Number(r[13])||0,
+    canCancel:['입고','출고','절단출고'].includes(r[4])&&!canceled.has(String(r[1]))&&(user.admin||r[12]===user.email),canMemo:!!(user.admin||r[12]===user.email)};
+}
+/** v3.12 기간 기록 조회: 최근 100건 제한 없이 처리일(또는 작업일) 기준으로 찾습니다. 화면이 느려지지 않도록 최대 3,000건. */
+function getHistory(p, accessToken){return locked_(function(){
+  const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);
+  const from=ymdArg_(p&&p.from),to=ymdArg_(p&&p.to),by=p&&p.by==='work'?'work':'done',LIMIT=3000;
+  const out=[];let matched=0;
+  for(let k=s.logs.length-1;k>=0;k--){
+    const r=s.logs[k],d=r[0] instanceof Date?Utilities.formatDate(r[0],'Asia/Seoul','yyyy-MM-dd'):'';
+    const key=by==='work'?(r[14]||d):d;
+    if(from&&(!key||key<from))continue;
+    if(to&&(!key||key>to))continue;
+    matched++;if(out.length<LIMIT)out.push(logView_(r,s,user,canceled));
+  }
+  return {rows:out,matched:matched,limited:matched>out.length,from:from,to:to,by:by,total:s.logs.length};
+});}
+function ymdArg_(v){const t=String(v||'').trim();if(!t)return '';if(!/^\d{4}-\d{2}-\d{2}$/.test(t))fail_('날짜는 2026-11-06 형식으로 입력하세요.');return t;}
+/** 시트 칸의 작업일 → yyyy-MM-dd. 날짜가 아니면 ''. */
+function ymdCell_(v){
+  if(v instanceof Date&&!isNaN(v))return Utilities.formatDate(v,'Asia/Seoul','yyyy-MM-dd');
+  const m=/^(\d{4})[-./\s]+(\d{1,2})[-./\s]+(\d{1,2})/.exec(String(v??'').trim());
+  return m?m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2):'';
+}
+function todayYmd_(){return Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd');}
+/** 사용자가 보낸 작업일. 비우면 ''(=오늘로 기록). 미래 날짜·400일보다 오래된 날짜는 거부. */
+function workDate_(v){
+  const t=ymdArg_(v);if(!t)return '';
+  const today=todayYmd_(),d=new Date(t+'T00:00:00+09:00');
+  if(isNaN(d)||Utilities.formatDate(d,'Asia/Seoul','yyyy-MM-dd')!==t)fail_('작업일이 올바른 날짜가 아닙니다: '+t);
+  if(t>today)fail_('작업일은 오늘('+today+') 이후로 정할 수 없습니다.');
+  if((new Date(today+'T00:00:00+09:00')-d)/86400000>400)fail_('작업일은 최근 400일 안에서만 정할 수 있습니다.');
+  return t;
+}
 // [v2.6 변경 D] 공백/대소문자 통일, 영문 1자 이상 필수.
 function normalizeCode_(v){return String(v??'').replace(/\s+/g,'').toUpperCase();}
 function code_(v){const c=normalizeCode_(v);if(!/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(c)||!/[A-Z]/.test(c))fail_('품목코드는 영문을 1자 이상 포함한 2~40자(영문·숫자·-·_)로 입력하세요. 예: 3060-BK-2250');return c;}
@@ -420,21 +475,41 @@ function itemName_(kind,size,color){
   return [k,(core&&!has)?sz:'',(c&&c!=='실버')?c:''].filter(Boolean).join(' ');
 }
 // v3.10 기록 메모 수정: 메모 칸만 바꿉니다(수량·재고·기록은 그대로). 이전 메모는 셀 메모(노트)에 남깁니다.
+// v3.12: p.workDate가 오면 작업일도 고칩니다. 절단출고를 고치면 함께 생긴 절단입고 줄도 같은 작업일로 맞춥니다.
 function updateLogMemo(p, accessToken){return locked_(function(){
-  const u=auth_(accessToken),s=state_(),target=txt_(p.target,100),memo=txt_(p.memo,250);
+  const u=auth_(accessToken),s=state_(),target=txt_(p.target,100);
   const row=s.logs.find(r=>String(r[1])===target);
   if(!row)fail_('기록을 찾을 수 없습니다.');
-  if(!u.admin&&row[12]!==u.email)fail_('본인의 기록만 메모를 수정할 수 있습니다.');
+  if(!u.admin&&row[12]!==u.email)fail_('본인의 기록만 수정할 수 있습니다.');
   const sh=getBook_().getSheetByName(CFG.LOG);
   const head=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String);
-  let col=head.indexOf('메모')+1;if(col<1)col=9;
-  const range=sh.getRange(row.sheetRow,col),old=String(range.getValue()||'');
-  const code=resolveCode_(row[2],s.directAliases);
-  if(old===memo)return {code:code,unchanged:true};
-  range.setValue(memo?cell_(memo):'');
-  const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm'),prev=String(range.getNote()||'');
-  range.setNote((prev?prev+'\n':'')+stamp+' '+u.name+' 메모 수정 · 이전: '+(old||'(없음)'));
-  return {code:code};
+  const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm');
+  const code=resolveCode_(row[2],s.directAliases);let changed=false;
+  if(p.memo!==undefined&&p.memo!==null){
+    const memo=txt_(p.memo,250);
+    let col=head.indexOf('메모')+1;if(col<1)col=9;
+    const range=sh.getRange(row.sheetRow,col),old=String(range.getValue()||'');
+    if(old!==memo){
+      range.setValue(memo?cell_(memo):'');
+      const prev=String(range.getNote()||'');
+      range.setNote((prev?prev+'\n':'')+stamp+' '+u.name+' 메모 수정 · 이전: '+(old||'(없음)'));
+      changed=true;
+    }
+  }
+  if(p.workDate!==undefined&&p.workDate!==null&&String(p.workDate).trim()!==''){
+    const wd=workDate_(p.workDate),col=s.logSchema.workDate+1;
+    if(col<1)fail_('입출고내역에 \'작업일\' 열이 없습니다. 관리자에게 시트 P1칸에 \'작업일\' 제목을 넣어 달라고 요청하세요.');
+    const rows=[row].concat(row[4]==='절단출고'?s.logs.filter(r=>r[4]==='절단입고'&&String(r[10])===target):[]);
+    rows.forEach(r=>{
+      const range=sh.getRange(r.sheetRow,col),old=r[14]||'';
+      if(old===wd)return;
+      range.setValue(wd);
+      const prev=String(range.getNote()||'');
+      range.setNote((prev?prev+'\n':'')+stamp+' '+u.name+' 작업일 수정 · 이전: '+(old||'(없음)'));
+      changed=true;
+    });
+  }
+  return changed?{code:code}:{code:code,unchanged:true};
 });}
 function txt_(v,max){return String(v||'').trim().slice(0,max);}
 function cell_(v){const s=String(v);return /^[\s]*[=+@-]/.test(s)?"'"+s:s;}
@@ -495,6 +570,7 @@ function writeLogs_(s,u,item,entries,sig){
     row[schema.target]=en.target||'';row[schema.signature]=sig;row[schema.actor]=u.email;
     if(schema.email>=0)row[schema.email]=u.email;
     if(schema.length>=0)row[schema.length]=k||'';
+    if(schema.workDate>=0)row[schema.workDate]=en.workDate||todayYmd_();
     rows.push(row);
   });
   const sh=s.ss.getSheetByName(CFG.LOG);
@@ -505,19 +581,20 @@ function writeLogs_(s,u,item,entries,sig){
   return {ok:true,duplicate:false,code:item.code,type:first.type,quantity:first.qty,stock:total,currentStock:total,
     length:fk,lengthStock:lens[fk],lengths:lengths};
 }
-function append_(s,u,id,item,type,quantity,delta,memo,target,sig,length){
-  return writeLogs_(s,u,item,[{id:id,type:type,qty:quantity,delta:delta,memo:memo,target:target,length:length||0}],sig);
+function append_(s,u,id,item,type,quantity,delta,memo,target,sig,length,workDate){
+  return writeLogs_(s,u,item,[{id:id,type:type,qty:quantity,delta:delta,memo:memo,target:target,length:length||0,workDate:workDate||''}],sig);
 }
 function saveTransaction(p, accessToken){return locked_(function(){
   const u=auth_(accessToken),s=state_(),code=code_(p.code),type=String(p.type),qty=int_(p.quantity,1),id=request_(p),memo=txt_(p.memo,250);
   if(!['입고','출고'].includes(type))fail_('입고·출고를 선택하세요.');
-  const rawLen=len_(p.length,false);
-  const sig=signature_(rawLen?[u.email,code,type,qty,memo,rawLen]:[u.email,code,type,qty,memo]),prev=previous_(s,id,sig);if(prev)return prev;
+  const rawLen=len_(p.length,false),wd=workDate_(p.workDate);
+  const base=rawLen?[u.email,code,type,qty,memo,rawLen]:[u.email,code,type,qty,memo];
+  const sig=signature_(wd?base.concat([wd]):base),prev=previous_(s,id,sig);if(prev)return prev;
   const item=s.items.find(i=>i.code===resolveCode_(code,s.directAliases));if(!item||!item.active)fail_('사용 가능한 품목이 아닙니다.');
   if(item.stock<0)fail_('음수 재고입니다. 관리자 실사 조정이 필요합니다.');
   const length=itemLength_(item,rawLen);
   if(type==='출고'&&length&&!item.lengths.some(l=>l.mm===length&&l.stock>0))fail_(length+'mm 재고가 없습니다. 길이를 다시 확인하세요.');
-  return append_(s,u,id,item,type,qty,type==='입고'?qty:-qty,memo,'',sig,length);
+  return append_(s,u,id,item,type,qty,type==='입고'?qty:-qty,memo,'',sig,length,wd);
 });}
 function adjustStock(p, accessToken){return locked_(function(){
   const u=auth_(accessToken);admin_(u);const s=state_(),code=code_(p.code),count=int_(p.count,0),reason=txt_(p.reason,250),id=request_(p),version=String(p.version||'');
@@ -543,13 +620,14 @@ function cutStock(p, accessToken){return locked_(function(){
   const pieces=Object.keys(merged).map(Number).sort((a,b)=>b-a).map(mm=>({length:mm,qty:merged[mm]}));
   const used=pieces.reduce((a,pc)=>a+pc.length*pc.qty,0);
   if(used>from*count)fail_('잘린 길이의 합('+used+'mm)이 원래 자재('+from+'mm × '+count+' = '+(from*count)+'mm)보다 깁니다. 길이와 개수를 확인하세요.');
-  const sig=signature_([u.email,code,'절단',from,count,JSON.stringify(pieces),memo]),prev=previous_(s,id,sig);if(prev)return prev;
+  const wd=workDate_(p.workDate),cbase=[u.email,code,'절단',from,count,JSON.stringify(pieces),memo];
+  const sig=signature_(wd?cbase.concat([wd]):cbase),prev=previous_(s,id,sig);if(prev)return prev;
   const item=s.items.find(i=>i.code===resolveCode_(code,s.directAliases));if(!item||!item.active)fail_('사용 가능한 품목이 아닙니다.');
   if(!item.hasLength)fail_('길이별로 관리하는 품목만 절단을 기록할 수 있습니다. 관리 화면에서 기본 길이를 먼저 정하세요.');
   const fromStock=lengthStock_(item,from);
   if(fromStock<count)fail_(from+'mm 재고가 '+fromStock+displayUnit_(item.unit)+'라 '+count+displayUnit_(item.unit)+'를 자를 수 없습니다.');
-  const entries=[{id:id,type:'절단출고',qty:count,delta:-count,memo:memo,target:'',length:from}]
-    .concat(pieces.map((pc,k)=>({id:id+'_c'+(k+1),type:'절단입고',qty:pc.qty,delta:pc.qty,memo:memo,target:id,length:pc.length})));
+  const entries=[{id:id,type:'절단출고',qty:count,delta:-count,memo:memo,target:'',length:from,workDate:wd}]
+    .concat(pieces.map((pc,k)=>({id:id+'_c'+(k+1),type:'절단입고',qty:pc.qty,delta:pc.qty,memo:memo,target:id,length:pc.length,workDate:wd})));
   const r=writeLogs_(s,u,item,entries,sig);
   r.pieces=pieces;return r;
 });}
@@ -572,7 +650,7 @@ function cancelTransaction(p, accessToken){return locked_(function(){
   // 잘린 조각을 먼저 빼고, 원래 길이를 마지막에 되돌립니다.
   const ordered=group.slice().reverse();
   const entries=ordered.map((g,k)=>({id:k===0?id:id+'_c'+k,type:'취소',qty:Number(g[5]),delta:-Number(g[6]),memo:reason,target:String(g[1]),
-    length:Number(g[13])||item.baseLength||0}));
+    length:Number(g[13])||item.baseLength||0,workDate:g[14]||''}));  // v3.12 취소는 원래 기록의 작업일로 맞춤(작업일 기준 집계가 상쇄되도록)
   const r=writeLogs_(s,u,item,entries,sig);
   r.quantity=Number(original[5]);r.length=Number(original[13])||item.baseLength||0;r.lengthStock=null;
   return r;
@@ -780,7 +858,7 @@ function redirectPage_(base,sku,action){
 /** 새 앱 주소에서 보내는 요청 통로. 허용된 기능만 실행합니다. */
 function doPost(e){
   const api={loginCompany:loginCompany,getDashboard:getDashboard,saveTransaction:saveTransaction,adjustStock:adjustStock,
-    cancelTransaction:cancelTransaction,updateLogMemo:updateLogMemo,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
+    cancelTransaction:cancelTransaction,updateLogMemo:updateLogMemo,getHistory:getHistory,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
     cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto,uiMutate:uiMutate};
   let out;
   try{
