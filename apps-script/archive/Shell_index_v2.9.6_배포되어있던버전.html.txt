@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ARCHICELL 재고</title>
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ARCHICELL 재고">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style data-shell>
+  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif}
+  .boot{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;box-sizing:border-box}
+  .boot img{width:128px;height:128px;border-radius:28px}
+  .boot small{color:#bbb;font-size:12px}
+  .spin{width:26px;height:26px;border:3px solid #ffffff33;border-top-color:#fff;border-radius:50%;animation:s .9s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .boot button{font:inherit;margin-top:8px;padding:12px 22px;border-radius:10px;border:0;background:#fff;color:#000;font-weight:700}
+</style>
+</head>
+<body>
+<div class="boot" id="boot">
+  <img src="icon-512.png" srcset="icon-192.png 192w, icon-512.png 512w" sizes="128px" alt="ARCHICELL" width="128" height="128">
+  <div class="spin" id="spin"></div>
+  <small id="boot-msg">재고 화면을 불러오는 중…</small>
+  <button id="retry" hidden onclick="location.reload()">다시 시도</button>
+</div>
+<script>
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.6 (QR 스캔·구글 시트 큰 버튼 줄)
+   - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
+   - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
+     창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
+   - EXEC: Apps Script 웹 앱 배포 주소. 배포 주소가 바뀌면 여기만 고치세요. */
+const EXEC = 'https://script.google.com/macros/s/AKfycbwLamzbESFWRVE5P2pFoyzTMJtlKZx8AIaqvtkhViLC0TYYRrpjkwELWfTEOWKot0t5/exec';
+/* SHEET_URL: 재고 구글 스프레드시트 주소. 시트 주소가 바뀌면 여기만 고치세요. */
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1sr07IV6u6bHeUBwqmlZ78GWOMUPrjnD87KbCRMIBJ6A/edit?gid=1108161337#gid=1108161337';
+const AUTH_KEY = 'achicell-company-auth';
+const COOKIE = 'ac_auth';
+const diag = {ls:false, idb:false, cookie:false, restoredFrom:'', hadAuth:false,
+  standalone: !!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches))};
+
+/* ---------- 로그인 정보 3중 보관 ---------- */
+function lsGet(){ try{ return localStorage.getItem(AUTH_KEY); }catch(e){ return null; } }
+function cookieGet(){
+  const m = document.cookie.split('; ').find(c => c.indexOf(COOKIE + '=') === 0);
+  if (!m) return null;
+  try{ return decodeURIComponent(m.slice(COOKIE.length + 1)); }catch(e){ return null; }
+}
+function cookieSet(v){
+  const path = location.pathname.replace(/[^/]*$/, '') || '/';
+  if (v === null) document.cookie = COOKIE + '=; Max-Age=0; Path=' + path + '; SameSite=Lax; Secure';
+  else document.cookie = COOKIE + '=' + encodeURIComponent(v) + '; Max-Age=31536000; Path=' + path + '; SameSite=Lax; Secure';
+}
+function idb(){
+  return new Promise((ok, no) => {
+    try{
+      const r = indexedDB.open('archicell', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => ok(r.result);
+      r.onerror = () => no(r.error);
+    }catch(e){ no(e); }
+  });
+}
+async function idbGet(){
+  try{ const db = await idb();
+    return await new Promise(ok => { const q = db.transaction('kv').objectStore('kv').get(AUTH_KEY);
+      q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); });
+  }catch(e){ return null; }
+}
+async function idbSet(v){
+  try{ const db = await idb(); const st = db.transaction('kv','readwrite').objectStore('kv');
+    if (v === null) st.delete(AUTH_KEY); else st.put(v, AUTH_KEY);
+  }catch(e){}
+}
+function mirror(v){ try{ cookieSet(v); }catch(e){} idbSet(v); }
+
+/* 화면 코드가 로그인 정보를 저장·삭제할 때 자동으로 나머지 두 곳에도 똑같이 반영 */
+(function hookStorage(){
+  const set = Storage.prototype.setItem, del = Storage.prototype.removeItem;
+  Storage.prototype.setItem = function(k, v){
+    const r = set.call(this, k, v);
+    if (k === AUTH_KEY) mirror(String(v));
+    return r;
+  };
+  Storage.prototype.removeItem = function(k){
+    const r = del.call(this, k);
+    if (k === AUTH_KEY && this === window.localStorage) mirror(null);
+    return r;
+  };
+})();
+
+async function restoreAuth(){
+  try{ localStorage.setItem('ac_probe','1'); localStorage.removeItem('ac_probe'); diag.ls = true; }catch(e){}
+  try{ document.cookie = 'ac_probe=1; Path=/; SameSite=Lax; Secure'; diag.cookie = document.cookie.indexOf('ac_probe=1') >= 0;
+       document.cookie = 'ac_probe=; Max-Age=0; Path=/; SameSite=Lax; Secure'; }catch(e){}
+  const fromLs = lsGet();
+  if (fromLs){ diag.hadAuth = true; diag.restoredFrom = '브라우저 저장소'; mirror(fromLs); diag.idb = true; return; }
+  const fromIdb = await idbGet(); diag.idb = 'indexedDB' in window;
+  const fromCookie = cookieGet();
+  const v = fromIdb || fromCookie;
+  if (v){
+    diag.hadAuth = true; diag.restoredFrom = fromIdb ? '보조 저장소' : '쿠키';
+    try{ Storage.prototype.setItem.call(localStorage, AUTH_KEY, v); }catch(e){}
+    try{ if (!lsGet()) sessionStorage.setItem(AUTH_KEY, v); }catch(e){}
+  }
+}
+
+/* ---------- google.script.run 대체 (서버 doPost 호출) ---------- */
+(function shim(){
+  function call(fn, args, ok, fail){
+    fetch(EXEC, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({fn:fn, args:args})})
+      .then(r => { if (!r.ok) throw new Error('서버 응답 오류 (' + r.status + ')'); return r.json(); })
+      .then(d => { if (d && d.ok) { ok && ok(d.result); } else { const e = new Error((d && d.error) || '알 수 없는 오류'); fail ? fail(e) : console.error(e); } })
+      .catch(err => { const e = new Error('네트워크 연결을 확인하세요. ' + (err && err.message || '')); fail ? fail(e) : console.error(e); });
+  }
+  function runner(ok, fail){
+    return new Proxy({}, {get(_, name){
+      if (name === 'withSuccessHandler') return f => runner(f, fail);
+      if (name === 'withFailureHandler') return f => runner(ok, f);
+      if (name === 'withUserObject') return () => runner(ok, fail);
+      return function(){ call(String(name), Array.prototype.slice.call(arguments), ok, fail); };
+    }});
+  }
+  window.google = window.google || {};
+  window.google.script = {run: runner(null, null), host: {close(){}}};
+})();
+
+/* ---------- 화면 불러오기 ---------- */
+function fail(text){
+  document.getElementById('spin').hidden = true;
+  document.getElementById('boot-msg').textContent = text;
+  document.getElementById('retry').hidden = false;
+}
+function runScript(old){
+  const s = document.createElement('script');
+  for (const a of old.attributes) s.setAttribute(a.name, a.value);
+  s.textContent = old.textContent;
+  return s;
+}
+function mount(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  document.title = doc.title || document.title;
+  document.querySelectorAll('style[data-shell]').forEach(e => e.remove());
+  const headScripts = [];
+  for (const n of Array.from(doc.head.childNodes)){
+    if (n.nodeName === 'BASE') continue;
+    if (n.nodeName === 'SCRIPT') { headScripts.push(n); continue; }
+    if (n.nodeName === 'META' && /viewport/i.test(n.getAttribute('name') || '')) continue;
+    document.head.appendChild(document.importNode(n, true));
+  }
+  if (doc.documentElement.lang) document.documentElement.lang = doc.documentElement.lang;
+  const body = document.createElement('body');
+  for (const a of doc.body.attributes) body.setAttribute(a.name, a.value);
+  document.documentElement.replaceChild(body, document.body);
+  headScripts.forEach(s => document.head.appendChild(runScript(s)));
+  // 원래 순서대로 요소를 붙이고, 스크립트는 그 자리에서 실행
+  (function walk(src, dst){
+    for (const n of Array.from(src.childNodes)){
+      if (n.nodeName === 'SCRIPT') { dst.appendChild(runScript(n)); continue; }
+      const c = document.importNode(n, false);
+      dst.appendChild(c);
+      if (n.childNodes.length && n.nodeName !== 'TEMPLATE') walk(n, c);
+      else if (n.nodeName === 'TEMPLATE') c.innerHTML = n.innerHTML;
+    }
+  })(doc.body, body);
+  document.dispatchEvent(new Event('DOMContentLoaded', {bubbles:true}));
+  window.dispatchEvent(new Event('load'));
+  showDiag();
+  addSheetLink();
+}
+
+/* ---------- 윗줄 아래 큰 버튼 두 개: QR 스캔 · 구글 시트 ----------
+   기존 '작업자 이름 · 권한 / 작업자 변경·나가기' 줄은 그대로 두고, 그 바로 아래에
+   반반 나눈 큰 버튼 줄을 하나 붙입니다(손가락으로 누르기 편한 높이 52px).
+   화면이 다시 그려져도 1초마다 확인해서 사라지면 다시 붙입니다.
+   시트는 구글 공유 권한이 있는 계정으로만 열립니다(앱 비밀번호와 별개). */
+const ICON_CAM = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><rect x="7" y="7" width="4" height="4" rx=".5"/><rect x="13" y="7" width="4" height="4" rx=".5"/><rect x="7" y="13" width="4" height="4" rx=".5"/><path d="M13 13h4v4"/></svg>';
+const ICON_SHEET = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 9v12"/></svg>';
+function addSheetLink(){
+  const css = document.createElement('style');
+  css.textContent =
+    '#ac-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;box-sizing:border-box;width:100%;flex:0 0 100%;' +
+    'margin:14px 0 2px;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif}' +
+    '#ac-actions .ac-btn{display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;height:52px;' +
+    'padding:0 10px;border-radius:12px;font-size:16px;font-weight:700;letter-spacing:-.01em;text-decoration:none !important;' +
+    'white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent;font-family:inherit;transition:transform .08s,filter .15s}' +
+    '#ac-actions .ac-btn:active{transform:scale(.97);filter:brightness(.95)}' +
+    '#ac-qr{background:#d4e8b6;color:#17302a !important;border:1px solid #d4e8b6}' +
+    '#ac-sheet{background:#2a433c;color:#fff !important;border:1px solid rgba(255,255,255,.28)}';
+  document.head.appendChild(css);
+
+  function visible(el){ return !!(el && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden'); }
+  function findAnchor(){
+    return Array.from(document.querySelectorAll('button, a')).find(b =>
+      !b.closest('#ac-actions') && /작업자\s*변경|나가기|로그아웃/.test((b.textContent || '') + ' ' + (b.title || '')) && visible(b));
+  }
+  function build(){
+    const row = document.createElement('div');
+    row.id = 'ac-actions';
+    row.innerHTML =
+      '<button type="button" class="ac-btn" id="ac-qr">' + ICON_CAM + '<span>QR 스캔</span></button>' +
+      '<a class="ac-btn" id="ac-sheet" target="_blank" rel="noopener">' + ICON_SHEET + '<span>구글 시트</span></a>';
+    row.querySelector('#ac-sheet').href = SHEET_URL;
+    row.querySelector('#ac-qr').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openScanner(); });
+    return row;
+  }
+  function tick(){
+    if (visible(document.getElementById('company-login'))) return;   // 로그인 화면에서는 안 붙임
+    if (document.getElementById('ac-actions')) return;
+    const anchor = findAnchor();
+    if (!anchor) return;
+    const rowParent = anchor.parentElement;
+    const row = build();
+    // 이름·나가기 줄이 따로 묶여 있으면 그 줄 바로 아래에, 제목과 한 덩어리면 그 덩어리 맨 끝에 붙임
+    if (rowParent && rowParent !== document.body && !/ARCHICELL/i.test(rowParent.textContent || ''))
+      rowParent.insertAdjacentElement('afterend', row);
+    else
+      (rowParent || document.body).appendChild(row);
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+/* ---------- 앱 안에서 QR 스캔 ----------
+   휴대폰 뒷면 카메라로 품목 QR을 찍으면 그 품목의 입출고 화면으로 바로 넘어갑니다.
+   - QR 안의 주소에서 sku(품목코드)를 꺼내 이 앱 주소 ?sku=코드 로 다시 엽니다. 로그인은 유지됩니다.
+   - QR에 주소 대신 품목코드만 들어 있어도 됩니다.
+   - 크롬(안드로이드)은 기본 QR 인식 기능을, 아이폰 사파리는 jsQR(무료 공개 프로그램)을 씁니다. */
+const JSQR_URL = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+function skuFromText(text){
+  const t = String(text || '').trim();
+  if (!t) return null;
+  try {
+    const u = new URL(t);
+    const sku = (u.searchParams.get('sku') || '').trim();
+    if (sku) return {sku: sku.slice(0, 40), action: u.searchParams.get('action') || ''};
+    return null;                                   // 주소인데 품목코드가 없으면 재고 QR 아님
+  } catch (e) {}
+  if (/^[A-Za-z0-9][A-Za-z0-9._-]{1,39}$/.test(t)) return {sku: t, action: ''};   // 코드만 들어 있는 QR
+  return null;
+}
+function loadJsQR(){
+  if (window.jsQR) return Promise.resolve(window.jsQR);
+  return new Promise((ok, no) => {
+    const s = document.createElement('script');
+    s.src = JSQR_URL; s.onload = () => window.jsQR ? ok(window.jsQR) : no(new Error('QR 인식 도구를 불러오지 못했습니다'));
+    s.onerror = () => no(new Error('QR 인식 도구를 불러오지 못했습니다. 인터넷 연결을 확인하세요.'));
+    document.head.appendChild(s);
+  });
+}
+async function makeDetector(){
+  if ('BarcodeDetector' in window){
+    try{
+      const fm = await BarcodeDetector.getSupportedFormats();
+      if (fm.indexOf('qr_code') >= 0){
+        const d = new BarcodeDetector({formats:['qr_code']});
+        return async src => { const r = await d.detect(src); return r.length ? r[0].rawValue : null; };
+      }
+    }catch(e){}
+  }
+  const jsQR = await loadJsQR();
+  const cv = document.createElement('canvas'), cx = cv.getContext('2d', {willReadFrequently:true});
+  return async video => {
+    const w = video.videoWidth, h = video.videoHeight; if (!w || !h) return null;
+    const k = Math.min(1, 720 / Math.max(w, h));
+    cv.width = Math.round(w * k); cv.height = Math.round(h * k);
+    cx.drawImage(video, 0, 0, cv.width, cv.height);
+    const img = cx.getImageData(0, 0, cv.width, cv.height);
+    const r = jsQR(img.data, img.width, img.height, {inversionAttempts:'dontInvert'});
+    return r ? r.data : null;
+  };
+}
+function openScanner(){
+  if (document.getElementById('qr-scan')) return;
+  const css = document.getElementById('qr-scan-css') || document.createElement('style');
+  css.id = 'qr-scan-css';
+  css.textContent =
+    '#qr-scan{position:fixed;inset:0;z-index:100000;background:#000;display:flex;flex-direction:column;' +
+    'font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;color:#fff}' +
+    '#qr-scan .top{display:flex;align-items:center;justify-content:space-between;padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px}' +
+    '#qr-scan .top b{font-size:17px}' +
+    '#qr-scan .x{font-family:inherit;font-weight:700;font-size:15px;line-height:1;padding:10px 16px;border-radius:10px;border:0;background:#fff;color:#000}' +
+    '#qr-scan .view{position:relative;flex:1;overflow:hidden}' +
+    '#qr-scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}' +
+    '#qr-scan .frame{position:absolute;left:50%;top:50%;width:min(68vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);' +
+    'border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);border:3px solid #4ade80}' +
+    '#qr-scan .frame.hit{border-color:#fff;background:rgba(74,222,128,.25)}' +
+    '#qr-scan .msg{padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 22px);text-align:center;font-size:15px;line-height:1.5;min-height:48px}' +
+    '#qr-scan .msg.err{color:#fca5a5}';
+  document.head.appendChild(css);
+
+  const box = document.createElement('div');
+  box.id = 'qr-scan';
+  box.innerHTML = '<div class="top"><b>📷 품목 QR 스캔</b><button type="button" class="x">닫기</button></div>' +
+    '<div class="view"><video playsinline muted autoplay></video><div class="frame"></div></div>' +
+    '<div class="msg">카메라를 켜는 중…</div>';
+  document.body.appendChild(box);
+  const video = box.querySelector('video'), msg = box.querySelector('.msg'), frame = box.querySelector('.frame');
+  let stream = null, alive = true, timer = 0;
+  const say = (t, err) => { msg.textContent = t; msg.classList.toggle('err', !!err); };
+  function close(){
+    alive = false; clearTimeout(timer);
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    box.remove();
+  }
+  box.querySelector('.x').onclick = close;
+
+  (async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      say('이 브라우저에서는 카메라를 쓸 수 없습니다. 사파리나 크롬에서 열어주세요.', true); return;
+    }
+    let detect;
+    try{
+      [stream, detect] = await Promise.all([
+        navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}, width:{ideal:1280}, height:{ideal:720}}, audio:false}),
+        makeDetector()
+      ]);
+    }catch(e){
+      const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+      say(denied ? '카메라 사용이 허용되지 않았습니다. 휴대폰 설정에서 이 앱(사파리·크롬)의 카메라 권한을 켜주세요.'
+                 : (e && e.message) || '카메라를 켜지 못했습니다.', true);
+      return;
+    }
+    if (!alive){ stream.getTracks().forEach(t => t.stop()); return; }
+    video.srcObject = stream;
+    try{ await video.play(); }catch(e){}
+    say('품목 QR을 초록 네모 안에 맞춰주세요');
+    let lastBad = '';
+    async function loop(){
+      if (!alive) return;
+      let text = null;
+      try{ if (video.readyState >= 2) text = await detect(video); }catch(e){}
+      if (text){
+        const hit = skuFromText(text);
+        if (hit){
+          frame.classList.add('hit');
+          say('인식됨: ' + hit.sku + ' — 품목 화면을 여는 중…');
+          try{ navigator.vibrate && navigator.vibrate(80); }catch(e){}
+          alive = false;
+          if (stream) stream.getTracks().forEach(t => t.stop());
+          const q = new URLSearchParams({sku: hit.sku});
+          if (hit.action === 'in' || hit.action === 'out') q.set('action', hit.action);
+          location.href = location.pathname + '?' + q.toString();
+          return;
+        }
+        if (text !== lastBad){ lastBad = text; say('재고 품목 QR이 아닙니다. 품목 라벨의 QR을 찍어주세요.', true); }
+      }
+      timer = setTimeout(loop, 160);
+    }
+    loop();
+  })();
+}
+/* 로그인 화면이 다시 보일 때만 맨 아래에 원인 한 줄 표시 */
+function showDiag(){
+  const box = document.getElementById('company-login');
+  if (!box) return;
+  const line = document.createElement('small');
+  line.id = 'shell-diag';
+  line.style.cssText = 'display:block;margin-top:14px;font-size:11px;color:#9aa59e;line-height:1.5';
+  const ok = v => v ? '정상' : '막힘';
+  line.textContent = '자동 접속 점검 · 저장소 ' + ok(diag.ls) + ' · 쿠키 ' + ok(diag.cookie) +
+    ' · 이전 접속 정보 ' + (diag.hadAuth ? '있음(' + diag.restoredFrom + ')' : '없음') +
+    (diag.standalone ? ' · 홈 화면 앱' : ' · 브라우저');
+  box.appendChild(line);
+}
+
+(async function boot(){
+  await restoreAuth();
+  const p = new URLSearchParams(location.search);
+  const q = new URLSearchParams({format:'app'});
+  const sku = (p.get('sku') || '').slice(0, 40), action = p.get('action') || '';
+  if (sku) q.set('sku', sku);
+  if (action === 'in' || action === 'out') q.set('action', action);
+  let html;
+  try {
+    const r = await fetch(EXEC + '?' + q.toString(), {redirect:'follow', cache:'no-store'});
+    if (!r.ok) throw new Error('응답 ' + r.status);
+    html = await r.text();
+    if (!/id=["']company-login["']/.test(html)) throw new Error('화면 형식이 다릅니다');
+  } catch (e) {
+    fail('재고 화면을 불러오지 못했습니다. 인터넷 연결을 확인하세요. (' + e.message + ')');
+    return;
+  }
+  try { mount(html); }
+  catch (e) { fail('화면을 여는 중 오류가 났습니다: ' + e.message); }
+})();
+</script>
+</body>
+</html>
