@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.15 · 폰 화면 정리(현황 요약 한 줄·기록 카드 축소·입출고 버튼 아래 고정, PC는 그대로) · Code는 v3.13 그대로 사용 -->
+<!-- ARCHICELL Index v3.16 · 폰 현황 간단히 보기 추가(자세히와 전환) · v3.15 폰 화면 정리 포함 · PC는 그대로 · Code는 v3.13 그대로 사용 -->
 <!-- 이전: ARCHICELL Index v3.13 · 길이구분(원장·컷팅·잔재) 표시·선택 · 재고 카드 길이 칸 세로형(길이 위·수량 아래) · 색상 그룹 제목 간단히 (Code v3.13 필요) / v3.12 · 전문 확인 창(입고·출고·절단·취소) · 작업일 선택(과거 작업 등록) · 기록 기간 조회(최근 100건 제한 해제, Code v3.12 필요) · 기록 메모·작업일 수정 · 기준 미설정 표시 · 최근 메모 추천 / v3.11 · 입고·출고 저장 전 확인 문구 · QR 열기 속도(무거운 목록은 입출고 창 다음에 그림, 폰 배경 흐림 끔, 사진 640) / v3.10 · 관리 화면 가로 배치(품목 등록·수정 위/실사·조정 접기) · 품목명 규칙(종류에 크기 숫자가 있으면 중복 삭제, 실버는 생략) · 크기 자동 (30x30) · QR 라벨(M코드 맨 위, 찍으면 입고·출고 삭제) · 기록 메모 수정 / Code v3.10과 함께 적용 / v3.9.10 · 현황 목록 정렬(프로파일 먼저, 색상별 실버→블랙, 크기 작은 순 2020→2040→3030→3060→6060)과 색상 구분 제목 / v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
@@ -832,7 +832,7 @@ body{color:var(--ink);background:var(--paper);letter-spacing:-.01em;-webkit-font
 <!-- 재고·기록 -->
 <section id="view-stock"><div class="dash">
 <div class="dash-main">
-  <div class="dash-tools"><div id="stock-chips" class="chips"></div><input id="search" aria-label="재고 검색" placeholder="품목·코드·크기·길이 검색 (예: 940)" oninput="renderStock()" autocomplete="off"></div>
+  <div class="dash-tools"><div id="stock-chips" class="chips"></div><div class="dash-search"><input id="search" aria-label="재고 검색" placeholder="품목·코드·크기·길이 검색 (예: 940)" oninput="renderStock()" autocomplete="off"><span id="stock-mode" role="group" aria-label="보기 방식"><button type="button" data-m="compact" onclick="setStockMode('compact')">간단히</button><button type="button" data-m="full" onclick="setStockMode('full')">자세히</button></span></div></div>
   <div id="stock-list" class="rows-list"></div>
 </div>
 <aside class="dash-side card">
@@ -2553,6 +2553,44 @@ function histCancelRow(r){
   .qs-actions .qs-btn{min-height:52px}
 }
 </style>
+<style id="archicell-v316-compact">
+/* ===== v3.16 현황 '간단히 보기' (폰 전용) =====
+   품목 하나를 두 줄(품목명·합계 / 길이별 수량)로 줄여 한 화면에 더 많이 보이게 함. '자세히'를 누르면 기존 카드 모양. */
+@media(min-width:761px){.dash-search{display:contents}#stock-mode{display:none}}
+@media(max-width:760px){
+  .dash-search{display:flex;gap:8px;align-items:center}
+  .dash-search #search{flex:1 1 auto;min-width:0}
+  #stock-mode{display:inline-flex;flex:0 0 auto;gap:2px;padding:3px;border:1px solid #dfe3ea;border-radius:12px;background:#fff}
+  #stock-mode button{min-height:36px;padding:0 11px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:13px;font-weight:700;color:#6a7380;white-space:nowrap;cursor:pointer}
+  #stock-mode button.on{background:#222731;color:#fff}
+
+  #view-stock.compact .srow{grid-template-columns:44px minmax(0,1fr) auto!important;gap:6px 10px!important;padding:9px 11px!important;border-radius:14px}
+  #view-stock.compact .srow .sc-photo{width:44px!important;height:44px!important;flex-basis:44px!important;border-radius:10px!important}
+  /* 품목 정보는 두 줄: 품목명 / M코드 · 품목코드 · 부족 */
+  #view-stock.compact .srow .srow-info{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"title title" "m meta";column-gap:0;align-items:center;row-gap:1px}
+  #view-stock.compact .srow .sr-title{grid-area:title;display:block;font-size:15px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-stock.compact .srow .sr-mtop{grid-area:m;font-size:11px;line-height:1.2;margin:0 8px 0 0}
+  #view-stock.compact .srow .sr-meta{grid-area:meta;flex-wrap:nowrap;overflow:hidden;white-space:nowrap;font-size:11.5px;gap:0 6px;min-width:0}
+  #view-stock.compact .srow .sr-meta span:not(.sr-code):not(.lowtag){display:none}
+  /* 합계: 길이가 여러 개면 '합계 412EA'만 */
+  #view-stock.compact .srow-total small{display:none!important}
+  #view-stock.compact .srow-total .st-multi{display:none!important}
+  #view-stock.compact .srow-total .st-multi+small{display:block!important;font-size:17px;font-weight:800;color:#16191e;white-space:nowrap}
+  /* 길이별 수량: 한 줄짜리 작은 칸 (구분은 한 글자 + 왼쪽 색 막대) */
+  #view-stock.compact .srow .srow-lens{display:flex!important;flex-wrap:wrap;gap:6px}
+  #view-stock.compact .srow .lchip.lt{flex:0 0 auto;width:auto!important;min-height:32px!important;flex-direction:row;align-items:center;gap:5px;padding:2px 8px 2px 11px!important;border-radius:10px!important}
+  #view-stock.compact .srow .lchip.lt:before{top:7px;bottom:7px}
+  #view-stock.compact .srow .lchip.lt .lt-top{flex-direction:row;align-items:center;gap:3px;font-size:11px;letter-spacing:-.2px}
+  #view-stock.compact .srow .lchip.lt .lk-tag{display:inline-block;font-size:0;padding:0;width:11px;text-align:center;background:none!important}
+  #view-stock.compact .srow .lchip.lt .lk-tag::first-letter{font-size:10.5px;font-weight:800}
+  #view-stock.compact .srow .lchip.lt b{font-size:15px!important}
+  /* 길이가 하나뿐인 품목은 한 줄로: 사진 · 품목 · (길이·수량) */
+  #view-stock.compact .srow:has(.srow-lens>.lchip:only-child){grid-template-areas:"ph info lens"!important}
+  #view-stock.compact .srow:has(.srow-lens>.lchip:only-child) .srow-total{display:none}
+  #view-stock.compact .srow:has(.srow-lens>.lchip:only-child) .srow-lens{justify-content:flex-end}
+  #view-stock.compact #stock-list .sc-group{margin-top:2px}
+}
+</style>
 <script>
 /* ===== v3.13 길이구분(원장·컷팅·잔재) =====
    - 원장: 2400 원자재 그대로 / 컷팅: 생산지에서 잘라서 입고 / 잔재: 우리가 자르고 남은 것(절단 기록 시 자동)
@@ -2620,5 +2658,19 @@ stockRow=function(i){
 /** 정보 수정에서 바뀐 길이구분만 {길이:구분}으로. 없으면 null */
 function qeLkinds(i){const box=el('qe-lkinds');if(!box||box.classList.contains('hidden'))return null;const out={};let n=0;
   box.querySelectorAll('[data-qe-lk]').forEach(seg=>{const on=seg.querySelector('.on');const v=on?on.dataset.k:'';if(v&&v!==seg.dataset.was){out[seg.dataset.qeLk]=v;n++;}});return n?out:null;}
+</script>
+<script>
+/* ===== v3.16 현황 보기 방식(간단히/자세히) — 폰에서만 의미 있음, 선택은 이 기기에 기억 ===== */
+(function(){
+  var KEY='archicell-stock-view';
+  function get(){try{return localStorage.getItem(KEY)==='full'?'full':'compact';}catch(e){return 'compact';}}
+  function apply(m){
+    var v=document.getElementById('view-stock');if(v)v.classList.toggle('compact',m==='compact');
+    document.querySelectorAll('#stock-mode button').forEach(function(b){var on=b.dataset.m===m;b.classList.toggle('on',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  }
+  window.setStockMode=function(m){try{localStorage.setItem(KEY,m);}catch(e){}apply(m);};
+  apply(get());
+  try{if(window.matchMedia&&matchMedia('(max-width:760px)').matches){var q=document.getElementById('search');if(q)q.placeholder='품목·코드·길이 검색';}}catch(e){}
+})();
 </script>
 </body></html>
