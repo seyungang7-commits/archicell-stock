@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- ARCHICELL Index v3.14 · PC 입출고 창 글씨·간격 키움(폰은 그대로) · Code는 v3.13 그대로 사용 -->
+<!-- ARCHICELL Index v3.15 · 폰 화면 정리(현황 요약 한 줄·기록 카드 축소·입출고 버튼 아래 고정, PC는 그대로) · Code는 v3.13 그대로 사용 -->
 <!-- 이전: ARCHICELL Index v3.13 · 길이구분(원장·컷팅·잔재) 표시·선택 · 재고 카드 길이 칸 세로형(길이 위·수량 아래) · 색상 그룹 제목 간단히 (Code v3.13 필요) / v3.12 · 전문 확인 창(입고·출고·절단·취소) · 작업일 선택(과거 작업 등록) · 기록 기간 조회(최근 100건 제한 해제, Code v3.12 필요) · 기록 메모·작업일 수정 · 기준 미설정 표시 · 최근 메모 추천 / v3.11 · 입고·출고 저장 전 확인 문구 · QR 열기 속도(무거운 목록은 입출고 창 다음에 그림, 폰 배경 흐림 끔, 사진 640) / v3.10 · 관리 화면 가로 배치(품목 등록·수정 위/실사·조정 접기) · 품목명 규칙(종류에 크기 숫자가 있으면 중복 삭제, 실버는 생략) · 크기 자동 (30x30) · QR 라벨(M코드 맨 위, 찍으면 입고·출고 삭제) · 기록 메모 수정 / Code v3.10과 함께 적용 / v3.9.10 · 현황 목록 정렬(프로파일 먼저, 색상별 실버→블랙, 크기 작은 순 2020→2040→3030→3060→6060)과 색상 구분 제목 / v3.9.9 · 현황 오른쪽 패널 정리(오늘 요약 한 줄·보충 필요 위로·최근 입출고에서 취소/기초재고 숨김, 글씨 키움) / v3.9.8 · 입출고 기록: 날짜·시간 두 줄, 취소/기초재고 기본 숨김(스위치), 기간 버튼, 내 기록만, 더 보기, 엑셀(CSV) 내려받기 / v3.9.7 · 입출고 기록 화면 개선(품목명 중심·검색 확장·휴대폰 카드·건수 요약) · PC 로고 중복 수정 / v3.9.6 · 휴대폰 가운데 자재관리 표시 삭제 / v3.9.5 · 휴대폰 가운데 글자를 로고 글꼴(로고에서 잘라낸 ArchiCell)로 / v3.9.4 · 휴대폰 헤더는 로고 심볼만 / v3.9.3 · 휴대폰 메뉴를 ☰ 아래 작은 메뉴로 / v3.9.2 · 휴대폰 헤더(왼쪽 로고·가운데 ARCHICELL·오른쪽 메뉴) · PC 자재관리 통합시스템 / v3.9.1 글씨·굵기 완화 / v3.9 · 회사 로고 헤더 · 여백/요약/목록 정리 · 품목 사진 간편 등록(선택·Ctrl+V·드래그) / Code v3.9와 함께 적용 -->
 <!-- 이전: ARCHICELL Index v3.8 · UI 개선 / Code v3.8과 함께 적용 · 이전: v3.7 : 큰 사진 · 사진 보기/바꾸기(붙여넣기·끌어놓기) · 현황에서 정보 수정 · 알루미늄 회색/블랙 색상 (Code v3.6 필요) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ARCHICELL 자재관리</title>
@@ -2462,6 +2462,95 @@ function histCancelRow(r){
   .qs-qty{margin-bottom:10px}.qs-qty button,.qs-qty input{min-height:66px}
   .qs-hint{min-height:30px;margin:12px 0 14px}
   .qs-btn{min-height:64px}
+}
+</style>
+<style id="archicell-v315-mobile">
+/* ===== v3.15 폰 화면 정리 (가로 760px 이하에서만 적용 · PC는 그대로) =====
+   목표: 첫 화면에서 재고 목록이 바로 보이게, 기록 한 건이 화면을 덜 차지하게, 입출고 창이 한눈에 들어오게.
+   - 현황: 제목 줄 삭제(아래 탭에 이미 표시) · 요약 3칸을 한 줄로 · 재고 카드 높이 줄임
+   - 기록: 필터를 가로로 밀어 보는 한 줄로 · 안내문 삭제 · 한 건 높이 절반 · 메모 버튼 겹침 수정
+   - 입출고 창: 작업일 한 줄 · 여백 축소 */
+@media(max-width:760px){
+  /* 공통: 위쪽 여백 */
+  main{padding-top:8px}
+  .ui-heading{display:none}
+  .app-toolbar{margin:0 0 8px}
+  .app-toolbar .status{min-height:0;padding:0}
+  .app-toolbar .status #sync{font-size:11.5px}
+  .app-toolbar .status #reload{min-height:32px;padding:4px 10px;font-size:12.5px}
+
+  /* 현황: 요약 세 칸을 한 줄로 */
+  .ui-overview{grid-template-columns:1.2fr 1fr 1fr;gap:6px;margin-bottom:10px}
+  .ui-overview .ov-total{grid-column:auto;order:-1}
+  .ui-overview>div,.ui-overview>button{padding:9px 10px;border-radius:12px}
+  .ui-overview .ov-label{font-size:11.5px;white-space:nowrap}
+  .ui-overview .ov-num b{font-size:21px}
+  .ui-overview .ov-num small{font-size:11.5px;margin-left:2px}
+  .ui-overview .ov-foot{display:none}
+
+  /* 현황: 검색·칩 줄 */
+  .dash-tools{gap:8px;margin-bottom:8px}
+  #search{min-height:44px;font-size:15px}
+  #stock-chips{gap:6px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  #stock-chips::-webkit-scrollbar{display:none}
+  #stock-chips .chip{flex:0 0 auto}
+
+  /* 현황: 재고 카드 높이 줄임 */
+  .srow{padding:10px 12px!important;gap:8px 10px!important}
+  .srow .sc-photo{width:48px!important;height:48px!important;flex-basis:48px!important}
+  .srow .srow-lens{gap:5px}
+  .srow .lchip.lt{min-height:54px!important;padding:5px 7px 6px 10px!important}
+  .srow .lchip.lt b{font-size:20px!important}
+  #stock-list .sc-group{margin-top:6px}
+  /* 기록: 필터를 컴팩트하게 */
+  #view-history>.card>p.muted{display:none}
+  #view-history .grid{grid-template-columns:112px minmax(0,1fr)!important;gap:8px!important;margin-bottom:8px}
+  #view-history .grid label{font-size:11.5px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #view-history .grid select,#view-history .grid input{min-height:44px;font-size:15px}
+  #view-history .h-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:0 0 8px;align-items:center}
+  #view-history .h-tools>.h-seg:first-child{grid-column:1/-1}
+  #view-history .h-seg{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  #view-history .h-seg::-webkit-scrollbar{display:none}
+  #view-history .h-seg .h-chip{flex:0 0 auto;min-height:36px;padding:4px 12px;font-size:13px;white-space:nowrap}
+  #view-history .h-chip.h-csv{margin:0;min-height:36px;padding:4px 10px;font-size:12.5px;white-space:nowrap}
+  #view-history .log-summary small{display:none}
+
+  /* 기록: 한 건 높이를 절반으로 (처리 종류 · 품목 · 수량 / 작업자·날짜·버튼) */
+  #view-history .h-table tr.h-row{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"type item qty" "who who cancel";gap:6px 10px;padding:10px 12px;align-items:center}
+  #view-history .h-table tr.h-row>td{padding:0;border:0}
+  #view-history td.h-type{grid-area:type}
+  #view-history td.h-item{grid-area:item;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 8px}
+  #view-history td.h-item .h-name{flex:1 0 100%;font-size:15.5px;line-height:1.3}
+  #view-history td.h-item .h-sub,#view-history td.h-item .h-code{font-size:12.5px;margin:0}
+  #view-history td.h-qty{grid-area:qty;text-align:right}
+  #view-history td.h-qty .h-delta{font-size:22px}
+  #view-history td.h-qty small{display:none}
+  #view-history td.h-who{grid-area:who;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;border-top:1px solid var(--line)!important;padding-top:8px!important;font-size:13px}
+  #view-history td.h-who>b{order:1;font-size:14px}
+  #view-history td.h-who .h-date-m{order:2;font-size:12.5px;white-space:nowrap}
+  #view-history td.h-who span::before{content:none}
+  #view-history td.h-who .h-date-m::before{content:"· "}
+  #view-history td.h-who>span:not(.h-date-m){order:3;flex:1 0 100%;font-size:13px;color:#4f5763}
+  #view-history td.h-who .h-memo-btn{order:4;margin-left:auto;min-height:34px;padding:4px 8px;font-size:12px;white-space:nowrap}
+  #view-history td.h-cancel{grid-area:cancel;align-self:end}
+  #view-history .h-cancel-btn{width:auto;min-height:34px;padding:4px 10px;font-size:12.5px}
+  /* 입출고 창: 여백 줄이고, 출고·입고 버튼은 항상 화면 아래에 고정 (작은 폰에서 스크롤해야 보이던 문제) */
+  .qs-box{overscroll-behavior:contain;padding-bottom:0}
+  .qs-box .ui-panel-kicker{display:none}
+  .qs-head{margin-bottom:10px}
+  .ui-balance{padding:10px 16px;margin-bottom:10px}
+  .ui-balance strong{font-size:40px}
+  .qs-wd{margin:0 0 10px;padding:6px 10px;flex-wrap:nowrap}
+  .qs-wd:not(.past) .qs-wd-note{display:none}
+  .qs-wd.past{flex-wrap:wrap}
+  .qs-wd input{flex:1 1 auto;min-width:0}
+  .qs-label{margin:0 0 6px}
+  .qs-lens{margin-bottom:10px}
+  .qs-qty{margin-bottom:8px}
+  .qs-qty button,.qs-qty input{min-height:54px}
+  .qs-hint{min-height:0;margin:8px 0 6px}
+  .qs-actions{position:sticky;bottom:0;z-index:3;margin:0 -2px;padding:10px 2px calc(10px + env(safe-area-inset-bottom,0px));background:linear-gradient(to top,#fff 82%,rgba(255,255,255,0))}
+  .qs-actions .qs-btn{min-height:52px}
 }
 </style>
 <script>
