@@ -17,8 +17,11 @@
   .boot{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;box-sizing:border-box}
   .boot img{width:128px;height:128px;border-radius:28px}
   .boot small{color:#bbb;font-size:12px}
-  .spin{width:26px;height:26px;border:3px solid #ffffff33;border-top-color:#fff;border-radius:50%;animation:s .9s linear infinite}
-  @keyframes s{to{transform:rotate(360deg)}}
+  .spin{position:relative;width:168px;height:3px;margin:8px 0 2px;border-radius:3px;background:#ffffff1f;overflow:hidden}
+  .spin[hidden]{display:none}
+  .spin::before{content:"";position:absolute;top:0;bottom:0;left:0;width:45%;border-radius:3px;background:linear-gradient(90deg,transparent,#fff 50%,transparent);animation:bar 1.3s cubic-bezier(.45,0,.55,1) infinite}
+  @keyframes bar{0%{transform:translateX(-100%)}100%{transform:translateX(230%)}}
+  @media(prefers-reduced-motion:reduce){.spin::before{animation-duration:2.8s}}
   .boot button{font:inherit;margin-top:8px;padding:12px 22px;border-radius:10px;border:0;background:#fff;color:#000;font-weight:700}
 </style>
 </head>
@@ -30,7 +33,7 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.7 (QR 스캔 즉시 열기 · 구글 시트 큰 버튼 줄)
+/* ARCHICELL 재고관리 앱 껍데기 v2.9.8 (불러오는 표시를 동그라미 대신 가는 선으로 · v2.9.7: QR 스캔 즉시 열기 · 구글 시트 큰 버튼 줄)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
