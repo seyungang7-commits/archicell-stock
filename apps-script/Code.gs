@@ -1,3 +1,4 @@
+// ARCHICELL Code v4.2 (v4.1 + 사진 폴더를 못 찾으면 새로 만들기)
 // ARCHICELL Code v4.1 (v4.0 + 조회 속도: 시트마다 한 번만 읽기)
 // ARCHICELL Code v4.0 (v3.13 + 본인 기록 판정 · 작업자 변경 · 기록 정정 · 기록 나눠 보기 · 처리 시간 측정)
 /*
@@ -1154,8 +1155,9 @@ function uploadPhoto(p, accessToken){
 function photoFolder_(){
   const props=PropertiesService.getScriptProperties(),id=props.getProperty('ARCHICELL_PHOTO_FOLDER_ID');
   if(id){
-    try{const f=DriveApp.getFolderById(id);if(!f.isTrashed())return f;}
-    catch(e){if(/권한|permission|scope|authoriz/i.test(String(e&&e.message||e)))throw e;}
+    // v4.2: 저장된 폴더를 못 찾으면(삭제됨·접근 불가 — 구글 문구에 '권한'이 섞여 있어도) 새 폴더를 만듭니다.
+    //       진짜 권한 문제라면 아래 createFolder에서 오류가 나므로 그때 권한 안내를 보여 줍니다.
+    try{const f=DriveApp.getFolderById(id);if(!f.isTrashed())return f;}catch(e){}
   }
   const folder=DriveApp.createFolder(CFG.PHOTO_FOLDER);
   props.setProperty('ARCHICELL_PHOTO_FOLDER_ID',folder.getId());
@@ -1165,7 +1167,7 @@ function photoFolder_(){
 function photoDriveFail_(e){
   const m=String(e&&e.message||e);
   if(m.indexOf('[확인]')>=0)throw e;
-  if(/권한|permission|scope|authoriz|auth\//i.test(m))
+  if(/지정된 권한|permission to call|required permission|scope|authoriz|auth\/|ScriptError/i.test(m)&&!/해당하는 항목이 없습니다|not found/i.test(m))
     fail_('사진 저장 권한이 아직 승인되지 않았습니다. 관리자가 Apps Script 편집기에서 setupPhotoFolder 를 한 번 실행해 권한을 승인한 뒤, 새 버전으로 다시 배포해 주세요. (품목 정보는 바뀌지 않았습니다)');
   fail_('사진을 구글 드라이브에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요. (품목 정보는 바뀌지 않았습니다) · '+m.slice(0,160));
 }
