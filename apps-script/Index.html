@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- ARCHICELL Index v4.1 · 저장을 화면에 먼저 반영(서버 확인은 뒤에서) · 직원용 간단 화면(QR → 수량 → 끝, 출고 빨강 · 입고 파랑) · QR 라벨·카드: 품목명 크게 → QL 코드 → 보관 위치 -->
 <!-- ARCHICELL Index v4.0 · 화면 전체를 한 벌로 다시 정리 (Code v4.0과 함께 적용 · QRLib은 그대로) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ARCHICELL 재고관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -324,6 +325,10 @@ details.fold .fold-body label{margin-top:12px}
 .qrm b{display:block;font-size:19px;line-height:1.2;font-weight:750}
 .qrm .ql-n{display:block;font-size:13.5px;font-weight:600}
 .qrm small{display:block;font-size:12px;color:#555}
+.qrm .ql-nm{font-size:21px;line-height:1.25;font-weight:800;margin:2px 0 3px}
+.qrm .ql-cd{display:block;font-size:15px;font-weight:700;letter-spacing:.02em;color:#222}
+.qrm .ql-loc{margin-top:6px;font-size:13px;color:#333}
+.qrm .ql-loc em{font-style:normal;font-weight:800;font-size:15px;color:#111}
 
 /* ---------- 입출고 창 ---------- */
 body.modal-open{overflow:hidden}
@@ -540,6 +545,49 @@ body.modal-open{overflow:hidden}
   .qrsvg{width:34mm}
   @page{size:A4;margin:10mm}
 }
+
+/* v4.1 직원용 간단 화면 */
+.simple-only{display:none}
+html.simple .simple-only{display:block}
+html.simple #stock-summary,html.simple #view-stock .page-title p,html.simple #stock-chips,html.simple #stock-loc,html.simple #stock-sort,html.simple #side{display:none!important}
+html.simple #view-stock .split{display:block!important}
+#simple-bar{margin:2px 0 14px}
+#simple-bar .btn-qr{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:0;border-radius:16px;background:#17302a;color:#fff;font:inherit;font-size:18px;font-weight:700;cursor:pointer}
+#simple-bar .btn-qr svg{width:26px;height:26px}
+#simple-bar p{margin:8px 2px 0;font-size:13px;color:#6b7280;text-align:center}
+html.simple #qs-stock,html.simple .len-new{display:none!important}
+html.simple #qs-move{display:flex;flex-direction:column}
+html.simple #qs-move>*{order:9}
+html.simple #lbl-type{order:1}html.simple #qs-move>.seg-type{order:2}html.simple #qs-lens-wrap{order:3}
+html.simple #qs-move>label[for=qs-n]{order:4}html.simple #qs-move>.qty{order:5}html.simple #qs-presets{order:6}html.simple #qs-flow{order:7}html.simple #qs-morebtn{order:8}
+html.simple #qs-move>.seg-type button{min-height:56px;font-size:18px;font-weight:700}
+html.simple #qs-move>.qty input{font-size:28px;font-weight:700}
+html.simple #qs-move>.qty button{min-width:64px;font-size:26px}
+html.simple #qs-presets button{min-height:48px;font-size:16px}
+html.simple #qs:not(.more) #qs-move>label[for=qs-memo],html.simple #qs:not(.more) #qs-memo,html.simple #qs:not(.more) #qs-memo-chips,html.simple #qs:not(.more) #qs-wdrow,html.simple #qs:not(.more) #qs-move>.sheet-links{display:none!important}
+#qs-morebtn{align-self:flex-start;margin:10px 0 0}
+html.simple #qs-lens-wrap{margin-top:14px}
+#qs .result.wait.opt{background:#ecfdf3;border-color:#a7f3d0}
+#qs .result.wait.opt b{color:#047857}
+html.simple #stock-list .card .cd{font-size:14px;font-weight:700;color:#333}
+html.simple #qs-meta{font-size:14px;font-weight:700;color:#333}
+html.simple .sheet-title{display:flex;flex-direction:column}html.simple #qs-meta{order:2}html.simple #qs-spec{order:3}html.simple #qs-name{order:1}
+
+/* 간단 화면 색 구분: 출고 = 빨강, 입고 = 파랑 (창 위쪽 띠 · 선택 버튼 · 저장 버튼 · 고른 길이·수량) */
+html.simple #qs .sheet-box{border-top:6px solid transparent}
+html.simple #qs:has(#qs-type-out[aria-checked=true]) .sheet-box{border-top-color:#dc2626}
+html.simple #qs:has(#qs-type-in[aria-checked=true]) .sheet-box{border-top-color:#2563eb}
+html.simple #qs-type-out[aria-checked=true]{background:#dc2626!important;border-color:#dc2626!important;color:#fff!important}
+html.simple #qs-type-in[aria-checked=true]{background:#2563eb!important;border-color:#2563eb!important;color:#fff!important}
+html.simple #qs-save.t-out:not(:disabled){background:#dc2626!important;border-color:#dc2626!important;color:#fff!important}
+html.simple #qs-save.t-in:not(:disabled){background:#2563eb!important;border-color:#2563eb!important;color:#fff!important}
+html.simple #qs:has(#qs-type-out[aria-checked=true]) #qs-lens button.on{border-color:#dc2626;box-shadow:inset 0 0 0 1px #dc2626}
+html.simple #qs:has(#qs-type-in[aria-checked=true]) #qs-lens button.on{border-color:#2563eb;box-shadow:inset 0 0 0 1px #2563eb}
+html.simple #qs:has(#qs-type-out[aria-checked=true]) #qs-presets button.on{border-color:#dc2626;color:#dc2626}
+html.simple #qs:has(#qs-type-in[aria-checked=true]) #qs-presets button.on{border-color:#2563eb;color:#2563eb}
+
+/* 휴대폰 위쪽 동기화 표시: 글자를 초록 점 바로 옆에 */
+@media (max-width:760px){.hd-sync #sync{flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="lg-s" viewBox="0 0 113.2 100"><path fill-rule="evenodd" d="M45.3 1.2 43.9 2.1 42.8 3.1 40.3 6.7 1.6 74 0.6 76.4 0.5 78.5 1.1 80.7 2.7 83.8 8.9 94.5 10.1 96.2 11.5 97.5 13 98.6 14.4 99.2 16.4 99.6 22.5 99.9 30.8 99.8 33.1 99.5 35 98.8 37 97.6 38.6 96 39.8 94.4 43.8 87.9 45.4 85.9 47.3 84.2 49.1 82.8 51.2 81.9 54.4 81 56.7 80.6 59.2 80.9 61.9 81.7 64.1 82.7 66 84 67.8 85.7 69.2 87.4 70.8 89.8 73.6 94.5 74.8 96.1 76.7 97.9 78.6 98.9 80.6 99.5 82.9 99.8 95.2 99.8 98.1 99.4 100.4 98.5 101.6 97.6 102.7 96.7 104.7 94 111.6 81.9 112.5 79.7 112.8 77.9 112.5 76 111.7 74.1 104.3 61 102.4 58.4 100.5 56.9 98.2 56 95.6 55.7 82.2 55.7 80.3 55.9 78.6 56.5 76.7 57.6 74.7 59.6 70.1 66.9 68.5 69 66.9 70.5 65 72.1 63.4 73.1 61 74 58.8 74.5 56.6 74.7 54.7 74.5 51.9 73.8 49.5 72.9 47.7 71.7 45.8 70.1 44.3 68.4 42.8 66.1 42 64.4 41.4 62.1 41.2 60.2 41.3 56.5 41.7 54.7 42.3 53 43.5 51 44.8 49.2 46.5 47.4 48 46.2 50.6 44.8 52.5 44.1 54.5 43.6 56.1 43.4 65.7 43.2 67.6 42.7 69.2 41.8 70.5 40.6 71.9 38.7 77 30.1 79.6 25 80.1 23.5 80.4 22.2 80.3 20.8 79.8 19 77.1 13.8 71.5 4.3 70.1 2.6 68.5 1.3 67.2 0.7 65.8 0.3 61.5 0 49.6 0.1 47.2 0.4Z"/></symbol><symbol id="lg-w" viewBox="0 0 741.2 100"><path fill-rule="evenodd" d="M37.5 6.1 35.3 8.1 33.4 10.6 28.1 19.5 24.7 25.9 22.8 31.7 20 36.4 18.5 40.8 15.6 45.9 15.2 47.3 14.8 50.7 14.3 52.3 11.2 57.9 10.2 62.9 7.1 68.8 5.7 73.8 2.5 79.7 0.6 87.2 0.5 88.9 0.7 90.8 1.7 94.3 2.8 96.8 4.1 98 5.9 98.7 10.8 99.2 13.8 99.2 16.8 98.9 19.1 98.2 20.8 97.2 22.2 95.8 25.9 90.1 27 87.9 28.2 82 30.8 77.3 31.6 75.6 32.6 69.5 35.5 63.8 36.9 58.1 39.9 52.7 41.1 47.3 44.2 41.4 45.4 37 51.2 28 52.8 26.7 54.5 26.3 56.1 26.7 57.9 28 59.9 30.1 61.7 32.8 63.2 36 65.8 40.7 67.2 45.1 70.4 50.3 71 53.4 71.2 55.9 71.1 57.2 70.7 58.2 70.1 59 69.3 59.7 68.1 60.2 66.1 60.4 53.9 60.5 51 60.7 48.3 61.7 43.7 64.6 41.7 66.7 40.8 69.1 40.7 77 41 78.6 41.7 79.9 43.4 81.7 45.8 83.5 48.4 84.9 50.6 85.6 53.3 85.8 79.5 85.9 80.9 86.2 82.1 86.9 82.9 87.8 84.4 92.2 86.2 94.9 89.1 97.4 91.7 98.6 96.7 99.1 100.1 99.1 102.6 98.5 105.2 97 107.6 94.5 109.1 91.8 109.5 88.5 109.4 86.4 109.1 84.8 108.4 83.2 105.5 78.4 105.1 77 104.9 73.4 104.6 71.9 101.2 66.1 100.1 61.1 97.1 55.2 95.8 49.9 92.5 44.5 91.5 38.8 88.4 32.9 87.2 28.4 86.1 26.5 82.9 22.3 79.2 15.8 77.2 12.9 73.4 8.2 71.5 6.4 64 1.3 62.5 0.6 61.1 0.2 59.1 0 50.7 0.1 48.6 0.3 46.8 1.1 42.6 3.9 39.1 5.2ZM210 40.6 208.7 39.4 202.6 35.5 200.7 34.8 198.1 34.6 147.3 34.7 145.7 34.9 144.4 35.4 140.4 38.5 136.6 39.1 135.4 39.6 130.8 43.9 129.7 45.4 128.2 48.6 125.8 52.4 124.3 57.3 122 61.8 121.3 63.5 120.9 68.7 120.8 89.1 121 91.1 121.6 92.5 125.7 97.3 126.9 98.2 128.3 98.8 130.9 99 138.4 98.8 140.2 98.3 141.5 97.2 142.2 95.1 142.8 88.6 142.8 69.3 143 67.2 143.7 65.2 146.8 58.8 147.7 57.5 148.7 56.6 150.7 56 153.6 55.7 202.4 55.8 203.9 55.7 205.3 55 206.6 54 209.5 51 210.6 49.4 211 47.8 210.9 43.5 210.6 41.8ZM227.8 49.6 227.1 51.3 226.2 55.9 223.5 60.5 222.7 62.6 222.5 65.1 222.6 71.6 222.8 74.3 223.5 75.9 225.9 79.7 227.2 83.9 228.5 86.2 234.1 92.5 237.8 96 240.2 97.8 241.5 98.3 243 98.6 249.6 98.9 256.3 99.8 299.6 99.8 309.2 98.6 310.9 97.9 312.1 96.5 312.7 94.5 313.1 89.7 313.1 86.9 312.5 84.6 311.7 83.4 310.4 82.2 304 78.6 302.3 78.1 300.3 77.9 258.8 78 252.2 77.7 249.8 76.7 247.6 74.7 244.8 71.2 244.2 70 244 68.8 244.1 67.2 244.6 65.7 248.7 58.7 250.4 56.9 252.4 56.1 255 55.9 307.6 55.8 309.2 55.7 310.4 55.2 311.9 53.9 312.7 52 313.1 46.8 312.9 43.2 312.3 41.4 311 39.6 308.6 37.1 306.4 35.4 304.9 34.8 303.3 34.7 250.7 34.6 248.1 34.8 246 35.6 242 38.3 238.1 39.3 236.5 40.2 234.2 42.1 230.8 45.7ZM327.1 19.2 325.9 21.1 325.2 24.1 324.7 28.6 324.7 87.4 325.4 95.1 325.8 96.5 326.6 97.5 327.8 98.3 329.3 98.7 337.8 98.9 339.4 98.6 340.6 98 341.7 97 342.7 95.7 345 91.1 345.7 88.1 345.8 63.8 346.2 60.1 346.9 58.2 348.1 56.9 349.7 56.1 351.7 55.8 380.7 55.8 382.5 56.1 384.1 56.9 386.2 58.7 388.2 60.9 389.3 62.5 389.8 64.1 389.9 66.2 389.9 90.2 390.1 91.7 390.8 93.2 392.2 95 394.4 97.1 396.1 98.2 398 98.7 402.2 98.8 404.6 98.5 406.6 97.5 408.7 95.7 410.5 93.1 411.2 90.5 411 59.3 410.3 57.3 407.8 53.4 406.7 50.3 406 49.1 399 41.4 396.5 39.6 392.5 38.2 388.3 35.5 386.1 34.7 351.3 34.6 348.9 34.3 347.3 33.5 346.3 32.3 345.9 31 345.5 27.9 345 26.3 342.3 20.1 340.8 18.3 339.6 17.7 338.2 17.4 332.3 17.4 329.2 17.9ZM430.3 9.7 428.9 10.8 427.8 11.9 425.5 15.5 423.1 18.1 422.6 19.3 422.6 20.3 422.9 21.6 425.5 25.1 426.8 28.6 428 29.7 429.5 30 433.9 29.6 440.2 30 442.1 29.4 444.5 26.6 446.9 24.7 447.6 23.6 447.8 22.3 447.5 16.5 446.9 14.9 445.8 13.9 443.1 12 441.4 10.4 439.5 9.4 436.9 8.9 433.3 8.9 431.9 9.1ZM434.3 35 433 35.2 431.9 35.8 428 39.1 426.8 40.7 426.4 42.5 426.6 47 426.6 90.8 426.4 95.3 426.7 96.7 427.2 97.5 428 98.3 428.9 98.6 434.8 99 439.4 98.9 441.4 98.4 442.8 97.3 445.8 92.2 446.4 90.2 446.7 87.4 446.8 46.7 446.6 45.5 445.7 44 443.2 40.2 441.8 38.7 437.9 35.7 436.1 35ZM487 9.6 484.1 13.1 479.9 20.3 475.4 30.5 474.8 33.6 473.9 50.4 474.8 65.9 475.4 69.1 480.8 80.9 483.5 85.2 487 89.4 491.5 93.2 496 95.8 498.9 96.5 506.8 97.5 564.1 97.5 567.4 97.1 570.3 96.4 572.2 95.4 574.3 93.6 575.9 91.5 577 89.1 577.2 86.9 576.7 84.8 575.1 82 572.4 78.9 569.7 76.8 567.2 75.7 563.5 75.3 509.8 75.3 507.6 75 505.8 74.3 503.3 72.4 499.3 68.2 497.7 66.2 496.6 64.4 496 62.4 495.5 58 494.4 51.6 494.2 49.3 494.4 47.1 495.4 41.7 496 36.9 496.7 34.7 498 32.5 499.9 30.3 503.5 26.8 506.3 24.7 508.6 23.8 511.4 23.4 564.2 23.4 568.2 23 570.8 21.7 573.7 19.3 576 16.5 577.1 14.1 577.3 11.9 576.7 9.8 575.1 6.9 573.1 4.5 571.3 3.1 569.5 2.3 563.6 1.8 510.2 1.7 502.7 2 498.7 2.4 496 3.3 491.1 6.3ZM593.5 51.2 590 59.8 589.2 63.1 589 68.5 589.7 72.7 593.3 82.2 595.8 86.2 598 88.9 599.7 90.6 603.6 93.6 606.6 95.5 608.2 96.1 609.6 96.3 621.4 96.8 666.1 96.8 669.8 96.5 671.8 95.9 673.6 94.7 675.2 92.5 675.8 90.9 676.1 89.2 675.8 87.5 675.1 85.9 673.7 83.9 672.1 82.3 670.3 81 668.4 80.3 665.5 79.9 623.4 80 615.7 79.7 613.4 79.2 611.7 78.2 610.5 76.7 609.8 74.6 609.1 69.1 609 66.4 609.4 62.4 610.2 59.6 611.6 57.2 613.5 55.3 615.8 54.1 618.4 53.7 628 53.4 652.7 53.5 654.3 53.8 655.5 54.4 656.4 55.4 656.9 56.5 656.9 57.9 656.1 59.3 654.7 60.4 653 60.9 627.6 61 623.3 61.4 621.1 62 619.6 63 618.5 64.3 617.9 65.8 617.9 67.4 618.4 69.1 619.4 70.4 620.9 71.6 622.7 72.5 624.7 72.9 627 73.1 657.3 73 660.1 72.6 665.5 71.1 667.2 70.5 668.7 69.6 671.9 66.9 674.1 63.6 674.7 62.1 676 56.9 676.2 55 676.2 53.4 675.7 51.1 674.4 47.1 672.9 44 671.5 42.4 669.7 40.8 664.9 37.6 662.8 36.8 660.2 36.6 613.5 36.6 610.2 36.9 608.6 37.3 606.6 38.4 600.2 42.7 597 46.2ZM696.3 2.3 694.3 2.6 692.6 3.7 688.8 7.8 688.2 8.9 687.9 10.2 687.8 88.8 687.9 90.7 688.4 92.2 689.3 93.8 690.4 95 691.8 96.1 694 97.1 696.7 98.1 698.4 98.4 700 98.1 702 97.4 703.9 96.6 705.9 95.2 707.1 94.1 708 92.8 708.6 91.4 708.9 89.7 709 10.9 708.8 9.2 708.1 7.8 703.3 3.1 701.3 2.4ZM729.3 2.3 727.3 2.5 725.7 2.9 724.4 3.6 723.1 4.8 722.2 6 721.5 7.8 720.6 12.5 720.4 15.2 720.4 86.8 721.1 92.7 721.5 94.1 722.2 95.2 723.2 96 728.4 98.2 730.2 98.5 731.8 98.1 735.9 96.4 737.8 95.1 738.6 93.8 740.7 88.5 740.9 86.9 741.1 14.8 740.9 12.5 740.1 10.2 738.4 6.8 736.8 4.6 735.5 3.5 733.8 2.7 731.8 2.3Z"/></symbol></defs></svg>
 <section id="company-login" aria-label="ARCHICELL 재고관리 접속">
@@ -576,6 +624,7 @@ body.modal-open{overflow:hidden}
       <div class="menu-sec"><small>작업자 바꾸기 · 비밀번호 없이 바로 바뀝니다</small><div id="menu-workers" class="seg"></div></div>
       <div class="menu-list">
         <a id="menu-sheet" class="menu-item hidden" target="_blank" rel="noopener">구글 시트 열기</a>
+        <button id="menu-simple" class="menu-item" type="button" onclick="toggleSimple()">간단 화면 켜기</button>
         <button class="menu-item" type="button" onclick="openHelp()">사용 안내</button>
         <button class="menu-item" type="button" onclick="openDiag()">속도 점검</button>
         <button id="company-logout" class="menu-item danger" type="button" onclick="logoutCompany()">로그아웃</button>
@@ -593,6 +642,7 @@ body.modal-open{overflow:hidden}
   <!-- 재고 현황 -->
   <section id="view-stock">
     <div class="page-title"><h1>재고 현황</h1><p>품목을 누르면 입고·출고 창이 열립니다.</p></div>
+    <div id="simple-bar" class="simple-only"><button id="simple-qr" class="btn-qr" type="button" onclick="simpleScan()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/></svg>QR 찍어서 입고 · 출고</button><p id="simple-tip">QR이 없으면 아래에서 품목을 누르세요</p></div>
     <div id="stock-summary" class="stats" aria-label="재고 요약"></div>
     <div class="toolbar">
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" aria-label="재고 검색" placeholder="품목명·코드·규격·길이·위치 검색" autocomplete="off" enterkeyhint="search"><button id="search-clear" class="clear hidden" type="button" aria-label="검색어 지우기">✕</button></div>
@@ -706,6 +756,7 @@ body.modal-open{overflow:hidden}
         <div class="qty"><button type="button" onclick="stepQty(-1)" aria-label="1 줄이기">−</button><input id="qs-n" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="1000000" step="1" value="1" enterkeyhint="done" aria-label="수량"><button type="button" onclick="stepQty(1)" aria-label="1 늘리기">+</button></div>
         <div id="qs-presets" class="presets" role="group" aria-label="빠른 수량"></div>
         <div id="qs-flow" class="flow idle"></div>
+        <button id="qs-morebtn" class="link simple-only" type="button" onclick="toggleMore()">메모 · 작업일 추가</button>
         <label class="field-label" for="qs-memo">메모 <span class="opt">선택 · 현장명이나 용도</span></label>
         <input id="qs-memo" maxlength="250" autocomplete="off" placeholder="예: 분당 현장" enterkeyhint="done">
         <div id="qs-memo-chips" class="chips-sm"></div>
@@ -977,7 +1028,7 @@ function load(quiet,force){
 function render(){
   if(!db){renderStockEmpty();setSync();return;}
   if(!METRIC.first)METRIC.first=Math.round(now()-METRIC.boot);
-  renderHeader();
+  renderHeader();applySimple();
   if(initialSku){
     const i=db.items.find(x=>x.active&&x.code===canonicalCode(initialSku)),a=initialAction==='in'?'입고':initialAction==='out'?'출고':'';
     if(i){show('stock');openSheet(i.code,null,a);initialSku='';initialAction='';}
@@ -999,6 +1050,14 @@ function controls(){
   document.querySelectorAll('#history [data-fix],#history [data-cancel],#history [data-memo]').forEach(b=>{b.disabled=f;});
   setSync();renderSheet();renderPv();
 }
+/* v4.1 직원용 간단 화면: 관리자는 기본 꺼짐, 직원은 기본 켜짐. 메뉴에서 바꾸면 이 기기에 기억합니다. */
+function isSimple(){return document.documentElement.classList.contains('simple');}
+function applySimple(){const want=store('archicell-simple'),on=typeof want==='boolean'?want:!!(db&&db.user&&!db.user.admin);
+  document.documentElement.classList.toggle('simple',on);const b=el('menu-simple');if(b)b.textContent=on?'자세한 화면으로 보기':'간단 화면으로 보기';
+  const qr=el('simple-qr');if(qr)qr.classList.toggle('hidden',!document.getElementById('ac-qr'));const tip=el('simple-tip');if(tip)tip.textContent=document.getElementById('ac-qr')?'QR이 없으면 아래에서 품목을 누르세요':'아래에서 품목을 누르세요';}
+function toggleSimple(){store('archicell-simple',!isSimple());applySimple();menuToggle(false);render();}
+function toggleMore(){el('qs').classList.toggle('more');}
+function simpleScan(){const b=document.getElementById('ac-qr');if(b)b.click();}
 function show(v){
   if(v==='manage'&&(!db||!db.user.admin))return;
   menuToggle(false);const prev=view;viewScroll[prev]=window.scrollY;view=v;
@@ -1075,7 +1134,7 @@ function renderStock(){
   // 표시 중 요약
   const shownTot=totalsByUnit(rows.map(r=>r.it)).map(([u,n])=>fmt(n)+' '+u).join(' · ')||'0';
   const filtered=!!(SF.q||SF.mode!=='all'||SF.loc);
-  html(el('stock-count'),'<span><b>'+fmt(rows.length)+'품목</b>'+(filtered?' 표시 (전체 '+fmt(c.all)+'품목 중)':'')+'</span><span>표시 중 재고 합계 <b>'+esc(shownTot)+'</b></span>'+(filtered?'<button class="link" type="button" onclick="stockReset()">조건 지우기</button>':''));
+  html(el('stock-count'),'<span><b>'+fmt(rows.length)+'품목</b>'+(filtered?' 표시 (전체 '+fmt(c.all)+'품목 중)':'')+'</span>'+(isSimple()?'':'<span>표시 중 재고 합계 <b>'+esc(shownTot)+'</b></span>')+(filtered?'<button class="link" type="button" onclick="stockReset()">조건 지우기</button>':''));
   const box=el('stock-list');
   if(!active.length){html(box,'<div class="panel empty"><b>등록된 품목이 없습니다</b>'+(db.user.admin?'품목 관리에서 첫 품목을 등록하세요.':'관리자가 품목을 등록하면 여기에 보입니다.')+'</div>');html(el('stock-more'),'');return;}
   if(!rows.length){html(box,'<div class="panel empty"><b>조건에 맞는 품목이 없습니다</b>검색어를 줄이거나 다른 분류를 골라 보세요.<br><button class="btn" type="button" onclick="stockReset()">조건 지우기</button></div>');html(el('stock-more'),'');return;}
@@ -1095,10 +1154,10 @@ function renderStock(){
     h+='</tbody></table></div>';
   }else{
     h='<div class="cards">';
-    shown.forEach(x=>{const i=x.it,st=statusOf(i),u=esc(unitOf(i)),sub=[specOf(i),i.location].filter(Boolean).join(' · ');
+    shown.forEach(x=>{const i=x.it,st=statusOf(i),u=esc(unitOf(i)),sub=isSimple()?(i.location?'보관 위치 '+i.location:''):[specOf(i),i.location].filter(Boolean).join(' · ');
       if(x.label&&x.label!==last){last=x.label;h+='<div class="grp-h">'+esc(x.label)+'<span>'+rows.filter(r=>r.label===x.label).length+'품목</span></div>';}
       h+='<div class="card'+st.row+'" data-code="'+esc(i.code)+'" role="button" tabindex="0"><span class="thumb" data-ph>'+thumbInner(i,160)+'</span>'+
-        '<div class="ci"><span class="nm">'+esc(titleOf(i))+'</span>'+(sub?'<span class="sp">'+esc(sub)+'</span>':'')+'<span class="cd">'+esc(codeLine(i))+'</span></div>'+
+        '<div class="ci"><span class="nm">'+esc(titleOf(i))+'</span>'+(isSimple()?'<span class="cd">'+esc(codeLine(i))+'</span>'+(sub?'<span class="sp">'+esc(sub)+'</span>':''):(sub?'<span class="sp">'+esc(sub)+'</span>':'')+'<span class="cd">'+esc(codeLine(i))+'</span>')+'</div>'+
         '<div class="ct"><b>'+fmt(i.stock)+'<span class="u">'+u+'</span></b>'+(st.cls==='b-ok'?'':'<span class="badge '+st.cls+'">'+st.text+'</span>')+'</div>'+
         (i.hasLength?'<div class="lens">'+lenChips(i,'button')+'</div>':'')+'</div>';});
     h+='</div>';
@@ -1132,11 +1191,12 @@ function modalState(){
 }
 function hideDialogs(){sheetOpen=false;pvOpen=false;editMode=false;cutMode=false;el('qs').classList.add('hidden');el('pv').classList.add('hidden');modalState();}
 function openSheet(code,len,type){
-  if(!db||busy||pending)return;code=canonicalCode(code);const i=db.items.find(x=>x.code===code&&x.active);if(!i)return;
+  if(!db||(pending&&!busy))return;code=canonicalCode(code);const i=db.items.find(x=>x.code===code&&x.active);if(!i)return;
   if(sheetOpen&&editMode&&editDirty())return;
   menuToggle(false);if(!sheetOpen)returnFocus=document.activeElement;
   sel=code;cutMode=false;editMode=false;result=null;lastTx=null;sheetErr='';resetUndo();msg('');
-  chosenType=type==='입고'||type==='출고'?type:'';
+  chosenType=type==='입고'||type==='출고'?type:'';if(!chosenType&&isSimple())chosenType='출고';
+  el('qs').classList.remove('more');
   if(!i.hasLength)chosenLen=0;
   else if(len)chosenLen=len;
   else{const ls=visibleLengths(i),inStock=ls.filter(l=>l.stock>0);chosenLen=ls.length===1?ls[0].mm:(inStock.length===1?inStock[0].mm:null);}
@@ -1148,12 +1208,12 @@ function openSheet(code,len,type){
 function forceCloseSheet(){sheetOpen=false;cutMode=false;editMode=false;chosenType='';el('qs').classList.add('hidden');modalState();result=null;lastTx=null;sheetErr='';
   if(returnFocus&&returnFocus.isConnected){try{returnFocus.focus({preventScroll:true});}catch(e){}}controls();}
 function closeSheet(){
-  if(busy||!sheetOpen)return;
+  if(!sheetOpen||(busy&&(editMode||cutMode)))return;
   if(editMode&&editDirty()){askBox({badge:'수정 중',kicker:'확인',title:'저장하지 않고 닫을까요?',text:'입력한 변경 내용이 사라집니다.',yes:'닫기',no:'계속 수정'}).then(ok=>{if(ok)forceCloseSheet();});return;}
   forceCloseSheet();
 }
 function sheetLen(){const i=current();return i&&i.hasLength?chosenLen||0:0;}
-function setType(t){if(busy)return;chosenType=t;sheetErr='';renderSheet();}
+function setType(t){if(busy&&canonicalCode(pending&&pending.payload.code)===sel)return;chosenType=t;sheetErr='';renderSheet();}
 function setQty(n){el('qs-n').value=Math.max(1,Math.min(1000000,Math.floor(n)||1));sheetErr='';renderSheet();}
 function stepQty(d){setQty((Number(el('qs-n').value)||0)+d);}
 function useSheetNewLen(){
@@ -1166,7 +1226,7 @@ function renderSheet(){
   const admin=!!db.user.admin,u=unitOf(i),off=frozen()||cooldown,mode=editMode?'edit':cutMode?'cut':'move';
   html(el('qs-photo'),thumbInner(i,240));
   el('qs-name').textContent=titleOf(i);
-  el('qs-spec').textContent=[specOf(i),i.location?'위치 '+i.location:''].filter(Boolean).join(' · ');
+  el('qs-spec').textContent=isSimple()?(i.location?'보관 위치 '+i.location:''):[specOf(i),i.location?'위치 '+i.location:''].filter(Boolean).join(' · ');
   el('qs-meta').textContent=codeLine(i);
   el('qs-editbtn').classList.toggle('hidden',!admin||mode==='cut');el('qs-editbtn').disabled=frozen();
   ['move','cut','edit'].forEach(m=>{el('qs-'+m).classList.toggle('hidden',mode!==m);el('foot-'+m).classList.toggle('hidden',mode!==m);});
@@ -1187,7 +1247,7 @@ function renderSheet(){
     const ls=visibleLengths(i);
     html(el('qs-lens'),ls.map(l=>'<button type="button" class="'+(l.mm===len?'on':'')+(lowLen(i,l)?' low':'')+'" data-len="'+l.mm+'" aria-pressed="'+(l.mm===len)+'"><span class="l1">'+fmt(l.mm)+'mm'+(l.kind?'<em>'+esc(l.kind)+'</em>':'')+'</span><span class="l2">'+fmt(l.stock)+'<i>'+esc(u)+'</i></span></button>').join('')+
       (isNew?'<button type="button" class="on" data-len="'+len+'" aria-pressed="true"><span class="l1">'+fmt(len)+'mm<em>새 길이</em></span><span class="l2">0<i>'+esc(u)+'</i></span></button>':''));
-    el('qs-lens').querySelectorAll('button').forEach(b=>{b.disabled=busy;});
+    el('qs-lens').querySelectorAll('button').forEach(b=>{b.disabled=false;});
     // 처음 들어오는 길이는 구분(원장·컷팅·잔재)을 고릅니다
     if(isNew){
       if(lkPick.len!==len)lkPick={len:len,kind:''};
@@ -1197,17 +1257,17 @@ function renderSheet(){
   const missing=i.hasLength&&!len,avail=lenStock(i,len),L=len?fmt(len)+'mm ':'';
   const raw=el('qs-n').value,n=Number(raw),valid=raw!==''&&Number.isSafeInteger(n)&&n>=1&&n<=1000000;
   el('qs-type-out').setAttribute('aria-checked',chosenType==='출고');el('qs-type-in').setAttribute('aria-checked',chosenType==='입고');
-  el('qs-type-out').disabled=busy;el('qs-type-in').disabled=busy;el('qs-n').disabled=busy;
+  el('qs-type-out').disabled=false;el('qs-type-in').disabled=false;el('qs-n').disabled=false;
   el('qs-unit').textContent='('+u+')';
   const pres=APP.presets.map(p=>'<button type="button" data-n="'+p+'" class="'+(valid&&n===p?'on':'')+'">'+p+'</button>').join('')+
     '<button type="button" data-n="'+avail+'" class="'+(valid&&n===avail&&avail>0&&!APP.presets.includes(avail)?'on':'')+'"'+(chosenType==='출고'&&avail>0?'':' disabled')+' title="이 재고 전부 출고">전부</button>';
-  html(el('qs-presets'),pres);el('qs-presets').querySelectorAll('button').forEach(b=>{if(busy)b.disabled=true;});
+  html(el('qs-presets'),pres);
   // 저장 전후 재고
   const over=chosenType==='출고'&&valid&&n>avail,after=!chosenType||!valid||missing?null:(chosenType==='출고'?avail-n:avail+n);
   const fl=el('qs-flow');fl.className='flow'+(over?' bad':after===null?' idle':'');
   html(fl,'<div><small>지금 '+esc(L)+'재고</small><b>'+(missing?'–':fmt(avail))+'<i>'+esc(u)+'</i></b></div><span class="arrow">'+(chosenType&&valid?esc(chosenType)+' '+(chosenType==='출고'?'−':'+')+fmt(n):'→')+'</span><div class="to"><small>저장 후</small><b>'+(after===null?'–':over?'부족':fmt(after))+(after===null||over?'':'<i>'+esc(u)+'</i>')+'</b></div>');
   el('qs-cutbtn').classList.toggle('hidden',!i.hasLength||!visibleLengths(i).some(l=>l.stock>0));el('qs-cutbtn').disabled=frozen();
-  el('qs-wd').disabled=busy;el('qs-memo').disabled=busy;
+  el('qs-wd').disabled=false;el('qs-memo').disabled=false;
   // 저장 버튼과 안내
   let why='';
   if(stale)why=loadError?'최신 재고를 확인하지 못했습니다. 위쪽 새로고침을 눌러 주세요.':'최신 재고를 확인하는 중입니다. 잠시만 기다려 주세요.';
@@ -1221,14 +1281,17 @@ function renderSheet(){
   else if(isNew&&!lkPick.kind)why='원장 · 컷팅 · 잔재 중 하나를 고르세요.';
   const text=sheetErr||why;hint.textContent=text;hint.className='hint'+(text?' bad':'');
   const sv=el('qs-save');sv.className='btn btn-lg btn-block'+(chosenType==='입고'?' t-in':chosenType==='출고'?' t-out':'');
-  sv.textContent=busy?'저장 중…':!chosenType?'입고 또는 출고를 선택하세요':chosenType+' '+L+(valid?fmt(n)+u+' ':'')+'저장';
+  sv.textContent=busy?(pending&&canonicalCode(pending.payload.code)===sel?'서버 확인 중…':'앞 저장 확인 중…'):!chosenType?'입고 또는 출고를 선택하세요':chosenType+' '+L+(valid?fmt(n)+u+' ':'')+'저장';
   sv.disabled=off||!chosenType||!!why;
 }
 function renderResult(){
   const box=el('qs-result'),main=el('qs-result-main'),sub=el('qs-result-sub'),undo=el('qs-undo'),retry=el('qs-retry');
   undo.classList.add('hidden');retry.classList.add('hidden');
-  if(busy&&pending){box.className='result wait';main.textContent='저장 중…';sub.textContent='서버에서 저장을 확인하고 있습니다. 창을 닫지 마세요.';return;}
-  if(pending){box.className='result err';main.textContent=pendingSlow?'응답이 늦어지고 있습니다':'저장 결과를 확인하지 못했습니다';sub.textContent=describePending(pending)+'\n입력한 내용은 그대로 있습니다. 결과 확인을 누르면 같은 요청을 다시 보내며, 이미 저장됐다면 두 번 기록되지 않습니다.';retry.classList.remove('hidden');retry.disabled=busy;return;}
+  if(busy&&pending){const pc=canonicalCode(pending.payload.code);
+    if(result&&result.opt){if(result.code!==sel){box.className='result hidden';return;}box.className='result wait opt';main.textContent=result.main;sub.textContent=result.sub;return;}
+    if(pc&&pc!==sel){box.className='result hidden';return;}
+    box.className='result wait';main.textContent='저장 중…';sub.textContent='서버에서 저장을 확인하고 있습니다. 창을 닫지 마세요.';return;}
+  if(pending){if(result&&result.opt)result=null;box.className='result err';main.textContent=pendingSlow?'응답이 늦어지고 있습니다':'저장 결과를 확인하지 못했습니다';sub.textContent=describePending(pending)+'\n입력한 내용은 그대로 있습니다. 결과 확인을 누르면 같은 요청을 다시 보내며, 이미 저장됐다면 두 번 기록되지 않습니다.';retry.classList.remove('hidden');retry.disabled=busy;return;}
   if(!result){box.className='result hidden';return;}
   box.className='result';main.textContent=result.main;sub.textContent=result.sub;
   const can=!!(lastTx&&result.id&&lastTx.id===result.id);undo.classList.toggle('hidden',!can);undo.disabled=frozen();
@@ -1262,14 +1325,30 @@ function begin(method,payload){
   payload.requestId='ac_'+Date.now()+'_'+(window.crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
   pending={method:method,payload:payload,actor:accessActor,authToken:accessToken};pendingSlow=false;session(pending);sendPending();
 }
+/* v4.1 저장을 누르면 재고 숫자를 화면에 먼저 반영합니다. 서버가 확정하면 서버 숫자로 바꾸고, 거절하면 다시 읽어 원래대로 돌립니다.
+   기록은 언제나 서버(구글 시트)가 한 번만 남깁니다(요청ID). 화면 반영은 보기용입니다. */
+function restoreInputs(p){if(p&&p.method==='saveTransaction'&&sheetOpen&&canonicalCode(p.payload.code)===sel&&Number(el('qs-n').value)===1&&!el('qs-memo').value){el('qs-n').value=p.payload.quantity;el('qs-memo').value=p.payload.memo||'';}}
+function optimistic(pl){
+  const code=canonicalCode(pl.code),i=db&&db.items.find(x=>x.code===code);if(!i)return;
+  const d=pl.type==='출고'?-pl.quantity:pl.quantity,u=unitOf(i),mm=Number(pl.length)||0;
+  i.stock+=d;
+  if(mm){let l=(i.lengths||[]).find(x=>x.mm===mm);if(!l){l={mm:mm,stock:0,kind:pl.lengthKind||''};i.lengths=(i.lengths||[]).concat([l]);}l.stock+=d;}
+  const L=mm?fmt(mm)+'mm ':'',main=pl.type+' '+L+fmt(pl.quantity)+u+' 저장됨';
+  result={id:'',opt:true,code:code,main:'✓ '+main,sub:titleOf(i)+' · 서버에서 확인하는 중 · 창을 닫고 다음 작업을 해도 됩니다'};sheetErr='';
+  el('qs-n').value=1;el('qs-memo').value='';lkPick={len:null,kind:''};vibrate(30);render();
+  if(isSimple())setTimeout(()=>{if(sheetOpen&&sel===code&&!editMode&&!cutMode){forceCloseSheet();if(busy&&pending)toast(main+' · 확인 중','ok');}},650);
+}
+
 /* 저장 요청 보내기. 같은 요청 번호로 다시 보내도 서버가 한 번만 기록합니다(요청ID + 내용 서명 확인). */
 function sendPending(){
   if(!pending||busy)return;
   if(pending.actor!==accessActor){msg('다른 작업자가 보낸 저장 요청이 남아 있습니다. 메뉴에서 원래 작업자로 바꾼 뒤 결과를 확인하세요.',true);return;}
   if(navigator.onLine===false){pendingSlow=false;toast('인터넷 연결을 확인하세요','err');controls();return;}
-  busy=true;pendingSlow=false;const p=pending,rid=p.payload.requestId,t0=now();controls();
+  busy=true;pendingSlow=false;const p=pending,rid=p.payload.requestId,t0=now();
+  if(p.method==='saveTransaction'&&!p.opt){p.opt=1;optimistic(p.payload);}
+  controls();
   clearTimeout(pendingTimer);
-  pendingTimer=setTimeout(()=>{if(pending&&pending.payload.requestId===rid&&busy){busy=false;pendingSlow=true;toast('응답이 늦어지고 있습니다','err');controls();}},APP.timeoutMs);
+  pendingTimer=setTimeout(()=>{if(pending&&pending.payload.requestId===rid&&busy){busy=false;pendingSlow=true;if(result&&result.opt)result=null;restoreInputs(pending);toast('응답이 늦어지고 있습니다','err');controls();}},APP.timeoutMs);
   const mine=()=>pending&&pending.payload.requestId===rid;
   try{
     google.script.run.withSuccessHandler(packet=>{
@@ -1280,9 +1359,11 @@ function sendPending(){
       if(!mine())return;clearTimeout(pendingTimer);busy=false;
       if(authFailure(e)){toastHide();controls();return;}
       if(isChecked(e)){ // 서버가 검증 후 거절: 기록되지 않았습니다. 입력값은 그대로 둡니다.
-        pending=null;session(null);const t=cleanErr(e);
-        if(sheetOpen)sheetErr=t;else msg(t,true);toast('저장되지 않았습니다','err');vibrate([80,60,80]);controls();load(true,true);
-      }else{toast('저장 결과를 확인하지 못했습니다','err');controls();}
+        pending=null;session(null);const t=cleanErr(e);if(result&&result.opt)result=null;
+        const same=sheetOpen&&p.method==='saveTransaction'&&canonicalCode(p.payload.code)===sel;
+        if(same){el('qs-n').value=p.payload.quantity;el('qs-memo').value=p.payload.memo||'';}
+        if(same||(sheetOpen&&p.method!=='saveTransaction'))sheetErr=t;else msg(describePending(p)+' · '+t,true);toast('저장되지 않았습니다','err');vibrate([80,60,80]);controls();load(true,true);
+      }else{if(result&&result.opt)result=null;restoreInputs(p);toast('저장 결과를 확인하지 못했습니다','err');controls();}
     }).uiMutate(p.method,p.payload,accessToken,{fast:APP.fastSave});
   }catch(e){clearTimeout(pendingTimer);busy=false;toast('저장 요청을 보내지 못했습니다','err');controls();}
 }
@@ -1296,16 +1377,18 @@ function onSaved(p,packet){
   }
   const L=r.length?fmt(r.length)+'mm ':'',rest=(r.length&&Number.isSafeInteger(r.lengthStock)?L+'남은 재고 '+fmt(r.lengthStock)+u+' · ':'')+'전체 '+fmt(r.currentStock)+u;
   let main='',undo=false;
-  if(p.method==='saveTransaction'){main=r.type+' '+L+fmt(r.quantity)+u+' 저장됨'+dup;undo=true;el('qs-n').value=1;el('qs-memo').value='';lkPick={len:null,kind:''};}
+  if(p.method==='saveTransaction'){main=r.type+' '+L+fmt(r.quantity)+u+' 저장됨'+dup;undo=true;}
   else if(p.method==='cutStock'){main='절단 '+L+fmt(r.quantity)+u+' 저장됨'+dup;undo=true;if(cutMode)setupCut();}
   else if(p.method==='cancelTransaction'){main='기록을 취소했습니다'+dup;if(lastTx&&lastTx.id===p.payload.target)lastTx=null;}
   else if(p.method==='correctTransaction')main='정정했습니다 · '+r.type+' '+L+fmt(r.quantity)+u+dup;
   else{main='실사 조정 완료'+dup;el('count').value='';el('audit-reason').value='';auditSnapshot=null;}
   lastTx=undo?{id:p.payload.requestId,code:r.code}:lastTx;
-  result={id:undo?p.payload.requestId:'',main:'✓ '+main,sub:nm+' · '+rest};sheetErr='';resetUndo(true);
-  if(sheetOpen)toastHide();else toast(main,'ok');vibrate(undo?40:[30,40,30]);
+  const here=sheetOpen&&(p.method!=='saveTransaction'||sel===canonicalCode(r.code||p.payload.code));
+  if(here){result={id:undo?p.payload.requestId:'',main:'✓ '+main,sub:nm+' · '+rest};sheetErr='';resetUndo(true);toastHide();}
+  else{if(result&&result.opt)result=null;toast(main+' · '+nm,'ok');}
+  vibrate(undo?40:[30,40,30]);
   if(!sheetOpen)msg(main+' · '+nm+' · '+rest);
-  if(undo){cooldown=true;setTimeout(()=>{cooldown=false;renderSheet();},1000);}
+  if(undo&&here){cooldown=true;setTimeout(()=>{cooldown=false;renderSheet();},1000);}
   render();controls();pulse(r.code);memoChips();
   if(sheetOpen)el('qs-body').scrollTop=0;
   if(view==='history'&&H.period!=='recent')histFetch(true);
@@ -1757,7 +1840,7 @@ function renderLabels(){
   try{
     const code=el('label-sku').value,items=db.items.filter(i=>i.active&&(!code||i.code===code));
     html(el('labels'),items.map(i=>{const sub=[specOf(i),i.location].filter(Boolean).join(' · ');
-      return '<article class="qrlabel"><div class="qrsvg">'+qrSvg(itemUrl(i.code))+'</div><div class="qrm"><span class="ql-b">ARCHICELL'+(i.orderCode?' · '+esc(i.orderCode):'')+'</span><b>'+esc(i.code)+'</b><span class="ql-n">'+esc(titleOf(i))+'</span>'+(sub?'<small>'+esc(sub)+'</small>':'')+'</div></article>';}).join(''));
+      return '<article class="qrlabel"><div class="qrsvg">'+qrSvg(itemUrl(i.code))+'</div><div class="qrm"><span class="ql-b">ARCHICELL'+(i.orderCode?' · '+esc(i.orderCode):'')+'</span><b class="ql-nm">'+esc(titleOf(i))+'</b><span class="ql-cd">'+esc(i.code)+'</span>'+(i.location?'<small class="ql-loc">보관 위치 <em>'+esc(i.location)+'</em></small>':'')+'</div></article>';}).join(''));
     el('qr-status').textContent=items.length+'품목 · 찍기만 해서는 재고가 바뀌지 않습니다.';el('print').disabled=!items.length;
   }catch(e){el('qr-status').textContent=e.message;}
 }
