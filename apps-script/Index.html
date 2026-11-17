@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- ARCHICELL Index v4.2 · v4.1에서 ①지난 화면에서도 입고·출고·절단 바로 저장 ②저장 직후 잠금 1초→0.45초 ③'최신 재고 확인 중' 표시를 조용하게 ④아이폰 하단 탭 가운데 정렬 (Code는 v4.2 그대로) -->
 <!-- ARCHICELL Index v4.1 · 저장을 화면에 먼저 반영(서버 확인은 뒤에서) · 직원용 간단 화면(QR → 수량 → 끝, 출고 빨강 · 입고 파랑) · QR 라벨·카드: 품목명 크게 → QL 코드 → 보관 위치 -->
 <!-- ARCHICELL Index v4.0 · 화면 전체를 한 벌로 다시 정리 (Code v4.0과 함께 적용 · QRLib은 그대로) -->
 <html lang="ko"><head><base target="_top"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ARCHICELL 재고관리</title>
@@ -491,8 +492,8 @@ body.modal-open{overflow:hidden}
   header #ac-actions .ac-btn{height:36px!important;padding:0 10px!important;font-size:13.5px!important}
   header #ac-actions #ac-qr span{display:none}
   header #ac-actions #ac-qr::after{content:"QR"}
-  #nav{position:fixed;left:0;right:0;bottom:0;z-index:790;margin:0;gap:0;justify-content:space-around;padding:0 6px env(safe-area-inset-bottom,0px);background:var(--card);border-top:1px solid var(--line)}
-  #nav button{flex:1;flex-direction:column;gap:2px;height:var(--tab);padding:0 4px;border:0;font-size:11.5px;max-width:120px}
+  #nav{position:fixed;left:0;right:0;bottom:0;z-index:790;margin:0;gap:0;justify-content:space-around;--g:max(10px,calc(env(safe-area-inset-bottom,0px)*.55));padding:var(--g) 6px var(--g);background:var(--card);border-top:1px solid var(--line)}
+  #nav button{flex:1;flex-direction:column;justify-content:center;gap:3px;height:auto;min-height:40px;padding:0 4px;border:0;font-size:11.5px;max-width:120px}
   #nav button svg{width:21px;height:21px}
   #nav button.active{border:0;color:var(--ink);font-weight:700}
   #nav button.active svg{stroke-width:2.1}
@@ -891,6 +892,9 @@ function canonicalCode(code){const normalized=String(code||'').replace(/\s+/g,''
 function parseCode(text){text=String(text||'').trim();if(/^https?:\/\//i.test(text)){try{const u=new URL(text);return {code:(u.searchParams.get('sku')||'').trim().toUpperCase(),action:u.searchParams.get('action')||'',url:true};}catch(e){return {code:'',action:'',url:true};}}return {code:text.toUpperCase(),action:'',url:false};}
 function current(){return db&&sel?db.items.find(i=>i.code===sel&&i.active):null;}
 function frozen(){return !db||busy||!!pending||stale;}
+/* v4.2 입고·출고·절단 저장은 '지난 화면'을 보는 중에도 허용합니다. 저장 순간 서버가 실제 재고를 다시 확인해 부족하면 거절합니다.
+   최신 확인이 실패한 상태(loadError)에서는 예전처럼 새로고침 후에만 저장할 수 있습니다. 품목 수정·실사 조정·정정·취소는 기존대로 최신 확인 후에만 가능합니다. */
+function txFrozen(){return !db||busy||!!pending||(stale&&!!loadError);}
 function vibrate(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 
 /* ---------- 알림 ---------- */
@@ -999,10 +1003,10 @@ function setSync(){
   const age=at?Math.floor((Date.now()-loadedAt)/60000):0;
   if(navigator.onLine===false){text='인터넷 연결 끊김'+(at?' · '+day+hm+' 기준 표시':'');cls='warn';}
   else if(loading&&!db){text='재고를 불러오는 중';cls='busy';}
-  else if(stale&&loading){text='지난 화면('+day+hm+') · 최신 재고 확인 중';cls='busy';}
+  else if(stale&&loading){text='갱신 중 · '+day+hm+' 기준';cls='busy';}
   else if(loadError){text='갱신 실패 · '+(at?day+hm+' 기준 표시':'표시할 재고 없음');cls='warn';}
   else if(stale){text='지난 화면('+day+hm+') · 최신 확인 필요';cls='warn';}
-  else if(loading){text='최신 '+hm+' 기준 · 확인 중';cls='busy';}
+  else if(loading){text='최신 '+day+hm+' 기준';cls='busy';}
   else if(at){text='최신 '+day+hm+' 기준'+(age>=2?' ('+age+'분 전)':'');cls=age>=5?'':'ok';}
   else text='';
   s.textContent=text;dot.className='dot'+(cls?' '+cls:'');
@@ -1223,7 +1227,7 @@ function useSheetNewLen(){
 }
 function renderSheet(){
   if(!sheetOpen)return;const i=current();if(!i){forceCloseSheet();return;}
-  const admin=!!db.user.admin,u=unitOf(i),off=frozen()||cooldown,mode=editMode?'edit':cutMode?'cut':'move';
+  const admin=!!db.user.admin,u=unitOf(i),off=txFrozen()||cooldown,mode=editMode?'edit':cutMode?'cut':'move';
   html(el('qs-photo'),thumbInner(i,240));
   el('qs-name').textContent=titleOf(i);
   el('qs-spec').textContent=isSimple()?(i.location?'보관 위치 '+i.location:''):[specOf(i),i.location?'위치 '+i.location:''].filter(Boolean).join(' · ');
@@ -1266,11 +1270,11 @@ function renderSheet(){
   const over=chosenType==='출고'&&valid&&n>avail,after=!chosenType||!valid||missing?null:(chosenType==='출고'?avail-n:avail+n);
   const fl=el('qs-flow');fl.className='flow'+(over?' bad':after===null?' idle':'');
   html(fl,'<div><small>지금 '+esc(L)+'재고</small><b>'+(missing?'–':fmt(avail))+'<i>'+esc(u)+'</i></b></div><span class="arrow">'+(chosenType&&valid?esc(chosenType)+' '+(chosenType==='출고'?'−':'+')+fmt(n):'→')+'</span><div class="to"><small>저장 후</small><b>'+(after===null?'–':over?'부족':fmt(after))+(after===null||over?'':'<i>'+esc(u)+'</i>')+'</b></div>');
-  el('qs-cutbtn').classList.toggle('hidden',!i.hasLength||!visibleLengths(i).some(l=>l.stock>0));el('qs-cutbtn').disabled=frozen();
+  el('qs-cutbtn').classList.toggle('hidden',!i.hasLength||!visibleLengths(i).some(l=>l.stock>0));el('qs-cutbtn').disabled=txFrozen();
   el('qs-wd').disabled=false;el('qs-memo').disabled=false;
   // 저장 버튼과 안내
   let why='';
-  if(stale)why=loadError?'최신 재고를 확인하지 못했습니다. 위쪽 새로고침을 눌러 주세요.':'최신 재고를 확인하는 중입니다. 잠시만 기다려 주세요.';
+  if(stale&&loadError)why='최신 재고를 확인하지 못했습니다. 위쪽 새로고침을 눌러 주세요.';
   else if(pending&&!busy)why='앞선 저장의 결과 확인이 먼저 필요합니다.';
   else if(i.stock<0)why='재고가 음수입니다. 관리자의 실사 조정이 필요합니다.';
   else if(missing)why='길이를 선택하세요.';
@@ -1307,13 +1311,13 @@ function describePending(p){
   return '저장 요청';
 }
 function sheetCommit(){
-  const i=current(),type=chosenType;if(!i||frozen()||cooldown||!['입고','출고'].includes(type))return;
+  const i=current(),type=chosenType;if(!i||txFrozen()||cooldown||!['입고','출고'].includes(type))return;
   const len=sheetLen(),n=Number(el('qs-n').value),avail=lenStock(i,len),u=unitOf(i),memo=el('qs-memo').value.trim();
   if(i.hasLength&&!len)return;if(!Number.isSafeInteger(n)||n<1||n>1000000)return;if(type==='출고'&&n>avail)return;
   const isNew=!!(len&&!(i.lengths||[]).some(l=>l.mm===len)),kind=isNew?lkPick.kind:'';
   if(isNew&&(type!=='입고'||!kind))return;
   const wd=wdValue(),pl={code:i.code,type:type,quantity:n,memo:memo,length:len||''};if(wd)pl.workDate=wd;if(isNew)pl.lengthKind=kind;
-  const go=()=>{if(frozen())return;sheetErr='';resetUndo();begin('saveTransaction',pl);};
+  const go=()=>{if(txFrozen())return;sheetErr='';resetUndo();begin('saveTransaction',pl);};
   if(!APP.confirmBeforeSave&&!wd){go();return;}
   askBox({badge:type,kicker:wd?'지난 날짜로 기록':'저장 전 확인',title:titleOf(i),sub:codeLine(i),
     qty:{label:len?fmt(len)+'mm'+(kind?' · '+kind:''):'수량',value:(type==='출고'?'−':'+')+fmt(n),unit:u},
@@ -1321,9 +1325,9 @@ function sheetCommit(){
     rows:wdRows(wd).concat(memo?[['메모',memo]]:[]),yes:type+' 저장',no:'취소'}).then(ok=>{if(ok)go();});
 }
 function begin(method,payload){
-  if(frozen())return;
+  if((method==='saveTransaction'||method==='cutStock')?txFrozen():frozen())return;
   payload.requestId='ac_'+Date.now()+'_'+(window.crypto&&crypto.randomUUID?crypto.randomUUID().replace(/-/g,''):Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2));
-  pending={method:method,payload:payload,actor:accessActor,authToken:accessToken};pendingSlow=false;session(pending);sendPending();
+  pending={method:method,payload:payload,actor:accessActor,authToken:accessToken,wasStale:stale};pendingSlow=false;session(pending);sendPending();
 }
 /* v4.1 저장을 누르면 재고 숫자를 화면에 먼저 반영합니다. 서버가 확정하면 서버 숫자로 바꾸고, 거절하면 다시 읽어 원래대로 돌립니다.
    기록은 언제나 서버(구글 시트)가 한 번만 남깁니다(요청ID). 화면 반영은 보기용입니다. */
@@ -1359,7 +1363,7 @@ function sendPending(){
       if(!mine())return;clearTimeout(pendingTimer);busy=false;
       if(authFailure(e)){toastHide();controls();return;}
       if(isChecked(e)){ // 서버가 검증 후 거절: 기록되지 않았습니다. 입력값은 그대로 둡니다.
-        pending=null;session(null);const t=cleanErr(e);if(result&&result.opt)result=null;
+        pending=null;session(null);const t=cleanErr(e)+(p.wasStale?'\n보고 계신 수량이 이전 값이었습니다. 최신 수량으로 다시 불러옵니다.':'');if(result&&result.opt)result=null;
         const same=sheetOpen&&p.method==='saveTransaction'&&canonicalCode(p.payload.code)===sel;
         if(same){el('qs-n').value=p.payload.quantity;el('qs-memo').value=p.payload.memo||'';}
         if(same||(sheetOpen&&p.method!=='saveTransaction'))sheetErr=t;else msg(describePending(p)+' · '+t,true);toast('저장되지 않았습니다','err');vibrate([80,60,80]);controls();load(true,true);
@@ -1388,7 +1392,7 @@ function onSaved(p,packet){
   else{if(result&&result.opt)result=null;toast(main+' · '+nm,'ok');}
   vibrate(undo?40:[30,40,30]);
   if(!sheetOpen)msg(main+' · '+nm+' · '+rest);
-  if(undo&&here){cooldown=true;setTimeout(()=>{cooldown=false;renderSheet();},1000);}
+  if(undo&&here){cooldown=true;setTimeout(()=>{cooldown=false;renderSheet();},450);}
   render();controls();pulse(r.code);memoChips();
   if(sheetOpen)el('qs-body').scrollTop=0;
   if(view==='history'&&H.period!=='recent')histFetch(true);
@@ -1443,15 +1447,15 @@ function readCut(){
 function updateCut(){
   if(!sheetOpen||!cutMode)return;const c=readCut(),u=unitOf(current()),hint=el('qs-hint'),empty=!c.pieces.length&&!sheetErr;
   const ok=fmt(c.from)+'mm '+fmt(c.count)+u+' 출고 → '+c.pieces.map(p=>fmt(p.length)+'mm '+fmt(p.qty)+u).join(', ')+' 입고'+(c.from*c.count-c.used>0?' · 적지 않은 자투리 약 '+fmt(c.from*c.count-c.used)+'mm':'');
-  hint.textContent=sheetErr||(stale?'최신 재고를 확인하는 중입니다.':c.bad||ok);hint.className='hint'+((sheetErr||(c.bad&&!empty))?' bad':'');
-  el('cut-save').disabled=!!c.bad||frozen()||cooldown;el('cut-save').textContent=busy?'저장 중…':'절단 저장';
+  hint.textContent=sheetErr||(stale&&loadError?'최신 재고를 확인하지 못했습니다. 위쪽 새로고침을 눌러 주세요.':c.bad||ok);hint.className='hint'+((sheetErr||(c.bad&&!empty))?' bad':'');
+  el('cut-save').disabled=!!c.bad||txFrozen()||cooldown;el('cut-save').textContent=busy?'저장 중…':'절단 저장';
 }
 function submitCut(){
-  const i=current(),c=readCut();if(!i||frozen()||cooldown||!cutMode||c.bad)return;
+  const i=current(),c=readCut();if(!i||txFrozen()||cooldown||!cutMode||c.bad)return;
   const u=unitOf(i),scrap=c.from*c.count-c.used,memo=el('cut-memo').value.trim();
   askBox({badge:'절단',kicker:'저장 전 확인',title:titleOf(i),sub:codeLine(i),qty:{label:fmt(c.from)+'mm 출고',value:'−'+fmt(c.count),unit:u},
     rows:[['잘라서 입고',c.pieces.map(p=>fmt(p.length)+'mm '+fmt(p.qty)+u).join(', ')]].concat(scrap>0?[['남는 길이','약 '+fmt(scrap)+'mm (기록 안 됨)']]:[]).concat(memo?[['메모',memo]]:[]),
-    yes:'절단 저장',no:'취소'}).then(ok=>{if(!ok||frozen())return;sheetErr='';resetUndo(true);begin('cutStock',{code:i.code,fromLength:c.from,count:c.count,pieces:c.pieces,memo:memo});});
+    yes:'절단 저장',no:'취소'}).then(ok=>{if(!ok||txFrozen())return;sheetErr='';resetUndo(true);begin('cutStock',{code:i.code,fromLength:c.from,count:c.count,pieces:c.pieces,memo:memo});});
 }
 
 /* 품목 정보 바로 수정 (관리자) */
