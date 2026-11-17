@@ -1,3 +1,18 @@
+// ARCHICELL Code v4.1 (v4.0 + 조회 속도: 시트마다 한 번만 읽기)
+// ARCHICELL Code v4.0 (v3.13 + 본인 기록 판정 · 작업자 변경 · 기록 정정 · 기록 나눠 보기 · 처리 시간 측정)
+/*
+ * v4.0 변경 요약 (재고 계산 방식 '초기재고 + 입고 - 출고'와 시트 A~J열은 그대로 · Index v3.18 이하와도 계속 호환)
+ * - 본인 기록 판정: 같은 접속(작업자계정)이거나 '작업자 이름'이 같으면 본인 기록으로 봅니다.
+ *   (전에는 접속할 때마다 새로 생기는 번호로만 판정해, PC에서 넣은 기록을 같은 사람이 휴대폰에서 취소하지 못했습니다)
+ * - switchWorker: 비밀번호를 다시 넣지 않고 작업자 이름만 바꿉니다(권한 구분은 그대로). 공용 비밀번호 방식이라 보안 수준은 같습니다.
+ * - correctTransaction: 잘못 넣은 입고·출고를 '취소 + 올바른 내용 재기록'으로 한 번에 정정합니다.
+ *   원래 줄은 그대로 남고, 취소 줄 메모에 정정 사유, 새 줄의 '정정원본ID' 열(없으면 오른쪽 끝에 자동 추가)에 원래 요청ID가 남습니다.
+ * - getHistory: 종류·작업자·검색어를 서버에서 거르고 limit/offset으로 나눠 보냅니다(합계는 조건 전체 기준). 예전 호출 방식도 그대로 동작합니다.
+ * - 실사 이전 기록에는 취소·정정 버튼을 처음부터 보여주지 않도록 표시값(canCancel·canFix)을 계산합니다.
+ * - uploadPhoto: 사진 공유 설정이 실패하면 shared:false 로 알려 줍니다(전에는 조용히 넘어가 직원 화면에 사진이 안 보였습니다).
+ * - getDashboard·uiMutate 응답에 serverMs(서버 처리 시간)를 넣어 느린 구간을 화면에서 확인할 수 있습니다.
+ * - uiMutate(…, {fast:true}): 저장 결과만 먼저 돌려주고 전체 현황 재조회는 화면이 따로 요청합니다(저장 응답이 빨라짐).
+ */
 // ARCHICELL Code v3.13 (v3.12 + 길이구분: 원장·컷팅·잔재)
 /*
  * v3.13 변경 요약 (재고 계산 방식은 그대로)
@@ -67,6 +82,7 @@ const CFG = Object.freeze({
   ITEM_EXTRA: ['크기','기본길이(mm)','주문코드','사진'],
   LOG_LENGTH: '길이(mm)',
   LOG_WORKDATE: '작업일',
+  LOG_FIX: '정정원본ID',
   PHOTO_FOLDER: 'ARCHICELL 자재사진'
 });
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
@@ -92,14 +108,14 @@ function ensureRenameSheet_(ss){
     sh.getRange(1,1,1,CFG.RENAME_HEADERS.length).setValues([CFG.RENAME_HEADERS]);
     sh.setFrozenRows(1);
   }
-  if(sh.getLastColumn()<4 || sh.getRange(1,1,1,4).getDisplayValues()[0].join('|')!==CFG.RENAME_HEADERS.join('|'))
+  if(lastCol_(sh)<4 || headRow_(sh,4).join('|')!==CFG.RENAME_HEADERS.join('|'))
     fail_(CFG.RENAMES+' 시트의 A~D열 제목을 확인하세요. 기존 데이터를 덮어쓰지 않습니다.');
   return sh;
 }
 function readRenameData_(ss){
   const sh=ss.getSheetByName(CFG.RENAMES);
   if(!sh)return {events:[],direct:Object.create(null),aliases:Object.create(null)};
-  if(sh.getLastColumn()<4 || sh.getRange(1,1,1,4).getDisplayValues()[0].join('|')!==CFG.RENAME_HEADERS.join('|'))
+  if(lastCol_(sh)<4 || headRow_(sh,4).join('|')!==CFG.RENAME_HEADERS.join('|'))
     fail_(CFG.RENAMES+'!A1:D1: 열 제목이 코드와 다릅니다.');
   const events=[],direct=Object.create(null);
   rows_(sh,4).forEach((r,i)=>{
@@ -198,12 +214,37 @@ function setupInventory_() {
   }
   SpreadsheetApp.getUi().alert('v2 설정 완료. 기존 품목과 기록을 보존했습니다. 사용자 시트에서 직원 이메일·표시이름·권한(작업자/관리자)·사용(TRUE)을 설정하세요. 새 시트에는 가상 재고를 만들지 않습니다.');
 }
+let BOOK_=null; // v4.0 한 번의 요청 안에서는 시트를 한 번만 엽니다.
 function getBook_() {
+  if(BOOK_)return BOOK_;
   const id=PropertiesService.getScriptProperties().getProperty(CFG.PROPERTY);
   if(!id)fail_('먼저 setupInventory를 실행하세요.');
-  return SpreadsheetApp.openById(id);
+  BOOK_=SpreadsheetApp.openById(id);
+  return BOOK_;
 }
-function rows_(sh,n) { if(!sh)fail_('v2 설치가 필요합니다.');return sh.getLastRow()<2?[]:sh.getRange(2,1,sh.getLastRow()-1,n).getValues(); }
+/* v4.1 조회 속도: 시트 호출 하나하나가 느리므로(실측), state_()가 도는 동안에는 시트 전체를 한 번만 읽어 둡니다.
+ * state_() 안에서는 쓰기가 없어 안전합니다. state_() 밖(저장·수정 구간)에서는 예전처럼 매번 시트에서 직접 읽습니다. */
+let SNAP_=null;
+function snap_(sh){
+  if(!SNAP_||!sh)return null;
+  let s=SNAP_.get(sh);
+  if(!s){const v=sh.getDataRange().getValues(),empty=v.length===1&&v[0].length===1&&v[0][0]==='';s={v:v,rows:empty?0:v.length,cols:empty?0:v[0].length};SNAP_.set(sh,s);}
+  return s;
+}
+function lastRow_(sh){const s=snap_(sh);return s?s.rows:sh.getLastRow();}
+function lastCol_(sh){const s=snap_(sh);return s?s.cols:sh.getLastColumn();}
+/** 1행 제목을 n칸 읽습니다(글자로). */
+function headRow_(sh,n){
+  const s=snap_(sh);
+  if(!s)return sh.getRange(1,1,1,n).getDisplayValues()[0];
+  const out=[];for(let i=0;i<n;i++){const x=s.rows&&i<s.cols?s.v[0][i]:'';out.push(x===null||x===undefined?'':String(x));}return out;
+}
+function rows_(sh,n) {
+  if(!sh)fail_('v2 설치가 필요합니다.');
+  const s=snap_(sh);
+  if(s){const out=[];for(let r=1;r<s.rows;r++){const row=s.v[r].slice(0,n);while(row.length<n)row.push('');out.push(row);}return out;}
+  return sh.getLastRow()<2?[]:sh.getRange(2,1,sh.getLastRow()-1,n).getValues();
+}
 function active_(v){return v===true||String(v).toUpperCase()==='TRUE';}
 function editorAuth_(){
   const email=String(Session.getActiveUser().getEmail()||'').trim().toLowerCase();
@@ -282,7 +323,7 @@ function doGet(e){
   t.initialSku=String(e&&e.parameter&&e.parameter.sku||'').slice(0,40);
   const action=String(e&&e.parameter&&e.parameter.action||'');
   t.initialAction=['in','out'].includes(action)?action:'';
-  return t.evaluate().setTitle('ARCHICELL 자재관리').addMetaTag('viewport','width=device-width, initial-scale=1');
+  return t.evaluate().setTitle('ARCHICELL 재고관리').addMetaTag('viewport','width=device-width, initial-scale=1');
 }
 function include_(name){return HtmlService.createHtmlOutputFromFile(name).getContent();}
 /* stockFormula_는 위에서 코드 변경 이력을 반영해 정의했습니다. */
@@ -290,7 +331,7 @@ function repairStockFormulas_(){locked_(function(){admin_(editorAuth_());const s
 /** A~J 고정, 확장 열은 제목으로 찾습니다. 기존 이메일·계정ID 열을 이동하거나 덮어쓰지 않습니다. */
 function logSchema_(sh){
   const base=CFG.LOG_HEADERS.slice(0,10);
-  const headers=sh.getLastRow()?sh.getRange(1,1,1,Math.max(10,sh.getLastColumn())).getDisplayValues()[0]:base.slice();
+  const headers=lastRow_(sh)?headRow_(sh,Math.max(10,lastCol_(sh))):base.slice();
   if(headers.slice(0,10).join('|')!==base.join('|'))fail_('입출고내역 A~J열 제목이 기존 형식과 다릅니다.');
   function find(name){const matches=[];headers.forEach((h,i)=>{if(h===name)matches.push(i);});if(matches.length>1)fail_('입출고내역에 중복된 열 제목이 있습니다: '+name);return matches.length?matches[0]:-1;}
   function need(name){const i=find(name);if(i>=0)return i;headers.push(name);return headers.length-1;}
@@ -301,12 +342,14 @@ function logSchema_(sh){
   const length=find(CFG.LOG_LENGTH);
   // v3.12 작업일 열(선택). 없으면 -1.
   const workDate=find(CFG.LOG_WORKDATE);
-  return {headers:headers,target:target,signature:signature,actor:actor,email:email,length:length,workDate:workDate};
+  // v4.0 정정원본ID 열(선택). 처음 정정할 때 자동으로 만들어집니다. 없으면 -1.
+  const fix=find(CFG.LOG_FIX);
+  return {headers:headers,target:target,signature:signature,actor:actor,email:email,length:length,workDate:workDate,fix:fix};
 }
 /** v2.6.1: 숨겨진 열을 포함해 읽되, 실제 스프레드시트 행 번호를 함께 보존. */
 function readLogs_(sh){
   const schema=logSchema_(sh);
-  if(schema.headers.length>sh.getLastColumn())
+  if(schema.headers.length>lastCol_(sh))
     fail_('입출고내역 1행: 필요한 확장 열이 없습니다. 먼저 setupInventory를 실행하세요.');
 
   const logs=[];
@@ -318,7 +361,8 @@ function readLogs_(sh){
       source[schema.signature]||'',
       String(source[schema.actor]||(schema.email>=0?source[schema.email]:'')||'').trim().toLowerCase(),
       schema.length>=0?lenCell_(source[schema.length]):0,   // [13] 길이(mm), 0 = 길이 미기록
-      schema.workDate>=0?ymdCell_(source[schema.workDate]):''   // [14] v3.12 작업일(yyyy-MM-dd), '' = 미기록
+      schema.workDate>=0?ymdCell_(source[schema.workDate]):'',  // [14] v3.12 작업일(yyyy-MM-dd), '' = 미기록
+      schema.fix>=0?String(source[schema.fix]||'').trim():''     // [15] v4.0 정정원본ID, '' = 정정 기록 아님
     ]);
     // 배열 형식을 유지하므로 기존 취소/입출고/재고 처리 로직은 그대로 동작합니다.
     log.sheetRow=index+2;
@@ -334,7 +378,8 @@ function columnLetter_(number){
   return result;
 }
 /** v2.6.1: 읽기/검증만 수행. 기존 품목/입출고 데이터를 수정하지 않습니다. */
-function state_(){
+function state_(){const outer=SNAP_;SNAP_=new Map();try{return stateRead_();}finally{SNAP_=outer;}}
+function stateRead_(){
   const ss=getBook_(),logData=readLogs_(ss.getSheetByName(CFG.LOG));
   const logs=logData.logs,itemsSh=ss.getSheetByName(CFG.ITEMS);
   const itemSchema=itemSchema_(itemsSh),raw=rows_(itemsSh,itemSchema.headers.length);
@@ -421,34 +466,72 @@ function state_(){
   return {ss:ss,logs:logs,items:items,logSchema:logData.schema,aliases:aliases,directAliases:direct};
 }
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
-function getDashboard(accessToken){return locked_(function(){
-  const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);
-  const recent=s.logs.slice(-100).reverse().map(r=>logView_(r,s,user,canceled));
-  return {items:s.items,recent:recent,aliases:Object.assign({},s.aliases),user:user,appUrl:publicUrl_()||ScriptApp.getService().getUrl()||'',warnings:user.admin?dashboardWarnings_(s):[],timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss')};
+function getDashboard(accessToken){const t0=Date.now();return locked_(function(){
+  const user=auth_(accessToken),t1=Date.now(),s=state_(),canceled=canceledSet_(s);
+  const recent=[];for(let k=s.logs.length-1;k>=0&&recent.length<100;k--)recent.push(logView_(s.logs[k],s,user,canceled,k));
+  return {items:s.items,recent:recent,aliases:Object.assign({},s.aliases),user:user,appUrl:publicUrl_()||ScriptApp.getService().getUrl()||'',warnings:user.admin?dashboardWarnings_(s):[],timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss'),
+    logCount:s.logs.length,serverMs:Date.now()-t0,waitMs:t1-t0};  // v4.0 처리 시간(잠금 대기 포함)·기록 줄 수
 });}
 function canceledSet_(s){return new Set(s.logs.filter(r=>r[4]==='취소').map(r=>String(r[10])));}
 /** 화면에 보내는 기록 한 줄. v3.12: ymd(연도 포함 처리일)·workDate(작업일) 추가, 기존 date 형식(MM-dd HH:mm:ss)은 유지. */
-function logView_(r,s,user,canceled){
+/** v4.0 본인 기록: 같은 접속(작업자계정)이거나 작업자 이름이 같으면 본인 기록입니다. */
+function own_(r,u){return r[12]===u.email||(!!u.name&&String(r[7]).trim()===u.name);}
+/** v4.0 품목 찾기 표(코드→품목)와 품목별 마지막 실사 위치. 한 번 만들어 재사용합니다. */
+function byCode_(s){if(!s.byCode){s.byCode=Object.create(null);s.items.forEach(i=>{s.byCode[i.code]=i;});}return s.byCode;}
+function lastAudit_(s){
+  if(!s.lastAudit){s.lastAudit=Object.create(null);s.logs.forEach((r,k)=>{if(r[4]==='실사조정')s.lastAudit[resolveCode_(r[2],s.directAliases)]=k;});}
+  return s.lastAudit;
+}
+function logView_(r,s,user,canceled,index){
   const d=r[0] instanceof Date?r[0]:null,code=resolveCode_(r[2],s.directAliases);
+  const item=byCode_(s)[code],k=index===undefined?s.logs.indexOf(r):index,la=lastAudit_(s)[code];
+  const mine=!!(user.admin||own_(r,user)),open=!canceled.has(String(r[1]))&&(la===undefined||k>la);
   return {id:String(r[1]),date:d?Utilities.formatDate(d,'Asia/Seoul','MM-dd HH:mm:ss'):String(r[0]),ymd:d?Utilities.formatDate(d,'Asia/Seoul','yyyy-MM-dd'):'',
     workDate:r[14]||'',code:String(r[2]),name:String(r[3]),type:String(r[4]),quantity:Number(r[5]),delta:Number(r[6]),operator:String(r[7]),memo:String(r[8]||''),stock:Number(r[9]),
-    unit:s.items.find(i=>i.code===code)?.unit||'EA',currentCode:code,canceled:canceled.has(String(r[1])),length:Number(r[13])||0,
-    canCancel:['입고','출고','절단출고'].includes(r[4])&&!canceled.has(String(r[1]))&&(user.admin||r[12]===user.email),canMemo:!!(user.admin||r[12]===user.email)};
+    unit:item?item.unit||'EA':'EA',currentCode:code,canceled:canceled.has(String(r[1])),length:Number(r[13])||0,
+    fixOf:r[15]||'',beforeAudit:la!==undefined&&k<=la,
+    canCancel:['입고','출고','절단출고'].includes(r[4])&&open&&mine,canFix:['입고','출고'].includes(r[4])&&open&&mine&&!!item,canMemo:mine};
 }
-/** v3.12 기간 기록 조회: 최근 100건 제한 없이 처리일(또는 작업일) 기준으로 찾습니다. 화면이 느려지지 않도록 최대 3,000건. */
-function getHistory(p, accessToken){return locked_(function(){
-  const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);
-  const from=ymdArg_(p&&p.from),to=ymdArg_(p&&p.to),by=p&&p.by==='work'?'work':'done',LIMIT=3000;
-  const out=[];let matched=0;
+/** v3.12 기간 기록 조회 · v4.0 서버에서 거르고 나눠 보내기.
+ *  p: {from,to,by, type,operator,q, hideCanceled,hideBase, limit,offset}
+ *  - limit을 보내지 않으면 예전처럼 최대 3,000건을 한 번에 보냅니다(예전 화면 호환).
+ *  - matched·summary는 조건에 맞는 전체 기준입니다(지금 보낸 쪽수와 무관). 입고·출고 합계는 취소된 기록을 뺍니다. */
+function getHistory(p, accessToken){const t0=Date.now();return locked_(function(){
+  const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);p=p||{};
+  const from=ymdArg_(p.from),to=ymdArg_(p.to),by=p.by==='work'?'work':'done';
+  const paged=!(p.limit===undefined||p.limit===null||p.limit==='');
+  const limit=paged?Math.min(500,int_(p.limit,1)):3000,offset=paged&&p.offset?int_(p.offset,0):0;
+  const type=txt_(p.type,10),who=txt_(p.operator,30),q=txt_(p.q,100).toLowerCase(),qn=histNorm_(q);
+  const hideCanceled=p.hideCanceled===true,hideBase=p.hideBase===true,items=byCode_(s);
+  const out=[],sum={'입고':Object.create(null),'출고':Object.create(null)},other=Object.create(null);
+  let matched=0,hidCancel=0,hidBase=0;
   for(let k=s.logs.length-1;k>=0;k--){
     const r=s.logs[k],d=r[0] instanceof Date?Utilities.formatDate(r[0],'Asia/Seoul','yyyy-MM-dd'):'';
     const key=by==='work'?(r[14]||d):d;
     if(from&&(!key||key<from))continue;
     if(to&&(!key||key>to))continue;
-    matched++;if(out.length<LIMIT)out.push(logView_(r,s,user,canceled));
+    const kind=String(r[4]);
+    if(type&&kind!==type)continue;
+    if(who&&String(r[7]).trim()!==who)continue;
+    const code=resolveCode_(r[2],s.directAliases),item=items[code];
+    if(q){
+      const hay=[r[2],code,r[3],r[7],r[8],kind,r[13]?r[13]+'mm':'',item?[item.name,item.size,item.color,item.kind,item.spec,item.orderCode].join(' '):''].join(' ').toLowerCase();
+      if(hay.indexOf(q)<0&&histNorm_(hay).indexOf(qn)<0)continue;
+    }
+    const isCanceled=canceled.has(String(r[1]));
+    if(hideCanceled&&type!=='취소'&&(isCanceled||kind==='취소')){hidCancel++;continue;}
+    if(hideBase&&type!=='기초재고'&&kind==='기초재고'){hidBase++;continue;}
+    if((kind==='입고'||kind==='출고')&&!isCanceled){const unit=displayUnit_(item?item.unit:'EA');sum[kind][unit]=(sum[kind][unit]||0)+Math.abs(Number(r[6])||0);}
+    else if(kind!=='입고'&&kind!=='출고')other[kind]=(other[kind]||0)+1;
+    if(matched>=offset&&out.length<limit)out.push(logView_(r,s,user,canceled,k));
+    matched++;
   }
-  return {rows:out,matched:matched,limited:matched>out.length,from:from,to:to,by:by,total:s.logs.length};
+  const next=offset+out.length;
+  return {rows:out,matched:matched,limited:matched>next,offset:offset,nextOffset:matched>next?next:null,from:from,to:to,by:by,total:s.logs.length,
+    summary:{'in':sum['입고'],out:sum['출고'],other:other,hiddenCancel:hidCancel,hiddenBase:hidBase},serverMs:Date.now()-t0};
 });}
+/** 검색어 비교용: 공백을 없애고 30*60 · 30×60 · 30X60 을 30x60 으로 맞춥니다. */
+function histNorm_(v){return String(v||'').toLowerCase().replace(/\s+/g,'').replace(/[x×*]/g,'x');}
 function ymdArg_(v){const t=String(v||'').trim();if(!t)return '';if(!/^\d{4}-\d{2}-\d{2}$/.test(t))fail_('날짜는 2026-11-06 형식으로 입력하세요.');return t;}
 /** 시트 칸의 작업일 → yyyy-MM-dd. 날짜가 아니면 ''. */
 function ymdCell_(v){
@@ -491,7 +574,7 @@ function updateLogMemo(p, accessToken){return locked_(function(){
   const u=auth_(accessToken),s=state_(),target=txt_(p.target,100);
   const row=s.logs.find(r=>String(r[1])===target);
   if(!row)fail_('기록을 찾을 수 없습니다.');
-  if(!u.admin&&row[12]!==u.email)fail_('본인의 기록만 수정할 수 있습니다.');
+  if(!u.admin&&!own_(row,u))fail_('본인의 기록만 수정할 수 있습니다.');
   const sh=getBook_().getSheetByName(CFG.LOG);
   const head=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String);
   const stamp=Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm');
@@ -582,6 +665,7 @@ function writeLogs_(s,u,item,entries,sig){
     if(schema.email>=0)row[schema.email]=u.email;
     if(schema.length>=0)row[schema.length]=k||'';
     if(schema.workDate>=0)row[schema.workDate]=en.workDate||todayYmd_();
+    if(schema.fix>=0)row[schema.fix]=en.fix||'';
     rows.push(row);
   });
   const sh=s.ss.getSheetByName(CFG.LOG);
@@ -657,7 +741,7 @@ function cancelTransaction(p, accessToken){return locked_(function(){
   const sig=signature_([u.email,'취소',target,reason]),prev=previous_(s,id,sig);if(prev)return prev;
   const original=s.logs.find(r=>String(r[1])===target);
   if(!original||!['입고','출고','절단출고'].includes(original[4]))fail_('입고·출고·절단 기록만 취소할 수 있습니다. 실사 조정은 새 실사로 바로잡으세요.');
-  if(!u.admin&&original[12]!==u.email)fail_('본인의 기록만 취소할 수 있습니다.');
+  if(!u.admin&&!own_(original,u))fail_('본인의 기록만 취소할 수 있습니다.');
   if(s.logs.some(r=>r[4]==='취소'&&r[10]===target))fail_('이미 취소한 기록입니다.');
   const item=s.items.find(i=>i.code===resolveCode_(original[2],s.directAliases));if(!item)fail_('품목을 찾을 수 없습니다.');
   const lastAudit=s.logs.map((r,i)=>resolveCode_(r[2],s.directAliases)===item.code&&r[4]==='실사조정'?i:-1).reduce((a,b)=>Math.max(a,b),-1);
@@ -673,6 +757,51 @@ function cancelTransaction(p, accessToken){return locked_(function(){
   r.quantity=Number(original[5]);r.length=Number(original[13])||item.baseLength||0;r.lengthStock=null;
   return r;
 });}
+/** v4.0 기록 정정: 잘못 넣은 입고·출고를 '취소 + 올바른 내용으로 다시 기록'으로 한 번에 처리합니다.
+ *  - 원래 줄은 지우지 않습니다(취소됨 표시). 취소 줄 메모 = '정정: 사유', 새 줄의 정정원본ID = 원래 요청ID.
+ *  - 길이·작업일·메모는 원래 기록을 따릅니다. 품목이나 길이가 틀렸다면 취소한 뒤 새로 기록하세요.
+ *  - 두 줄을 한 번에 쓰고, 정정 후 재고가 음수가 되면 아무것도 쓰지 않습니다. 같은 요청을 다시 보내도 한 번만 기록됩니다. */
+function correctTransaction(p, accessToken){return locked_(function(){
+  const u=auth_(accessToken);let s=state_();p=p||{};
+  const id=request_(p),target=txt_(p.target,100),reason=txt_(p.reason,200),type=String(p.type||''),qty=int_(p.quantity,1);
+  if(!reason)fail_('정정 사유를 입력하세요.');
+  if(!['입고','출고'].includes(type))fail_('입고·출고를 선택하세요.');
+  const sig=signature_([u.email,'정정',target,type,qty,reason]),prev=previous_(s,id,sig);if(prev)return prev;
+  const pick=function(){
+    const original=s.logs.find(r=>String(r[1])===target);
+    if(!original||!['입고','출고'].includes(original[4]))fail_('입고·출고 기록만 정정할 수 있습니다. 절단은 취소한 뒤 다시 기록하고, 실사 조정은 새 실사로 바로잡으세요.');
+    const item=s.items.find(i=>i.code===resolveCode_(original[2],s.directAliases));if(!item)fail_('품목을 찾을 수 없습니다.');
+    return {original:original,item:item};
+  };
+  let f=pick();
+  if(!u.admin&&!own_(f.original,u))fail_('본인의 기록만 정정할 수 있습니다.');
+  if(s.logs.some(r=>r[4]==='취소'&&String(r[10])===target))fail_('이미 취소하거나 정정한 기록입니다.');
+  if(f.original[4]===type&&Number(f.original[5])===qty)fail_('바뀐 내용이 없습니다. 구분이나 수량을 고쳐 주세요.');
+  const la=lastAudit_(s)[f.item.code];
+  if(la!==undefined&&s.logs.indexOf(f.original)<la)fail_('실사 이전 기록입니다. 관리자에게 새 실사 조정을 요청하세요.');
+  if(s.logSchema.fix<0){ // 정정원본ID 열이 없으면 오른쪽 끝에 만들고 다시 읽습니다(기존 열은 건드리지 않음).
+    addHeader_(s.ss.getSheetByName(CFG.LOG),CFG.LOG_FIX);SpreadsheetApp.flush();s=state_();f=pick();
+  }
+  const original=f.original,item=f.item,length=Number(original[13])||item.baseLength||0,wd=original[14]||'';
+  const cancel={id:id,type:'취소',qty:Number(original[5]),delta:-Number(original[6]),memo:'정정: '+reason,target:target,length:length,workDate:wd};
+  const fresh={id:id+'_n',type:type,qty:qty,delta:type==='입고'?qty:-qty,memo:String(original[8]||''),target:'',length:length,workDate:wd,fix:target};
+  // 재고가 늘어나는 줄을 먼저 써서, 중간 계산 때문에 정상 정정이 거부되지 않게 합니다(최종 재고만 음수 검사).
+  const r=writeLogs_(s,u,item,cancel.delta>=fresh.delta?[cancel,fresh]:[fresh,cancel],sig);
+  const ls=(r.lengths||[]).find(l=>l.mm===length);
+  r.type=type;r.quantity=qty;r.length=length;r.lengthStock=ls?ls.stock:null;r.corrected=true;r.newId=id+'_n';
+  r.before={type:String(original[4]),quantity:Number(original[5])};
+  return r;
+});}
+/** v4.0 작업자만 바꾸기: 지금 접속권이 유효하면 비밀번호 없이 이름만 바꾼 새 접속권을 줍니다. 권한 구분(직원·관리자)은 그대로입니다. */
+function switchWorker(p, accessToken){
+  let old;try{old=decodeAccess_(accessToken,false);}catch(e){fail_('접속 만료: 회사 비밀번호와 이름으로 다시 접속하세요.');}
+  const name=String(p&&p.name||'').trim();
+  if(!name||name.length>30||/[\u0000-\u001f\u007f]/.test(name))fail_('작업자 이름을 1~30자로 입력하세요.');
+  if(name===old.name)return {token:accessToken,name:old.name,actor:old.actor,admin:old.role==='admin',persistent:true};
+  const key=accessKey_(),u={name:name,role:old.role,actor:'shared:'+Utilities.getUuid(),persistent:true,rev:old.rev};
+  const body=Utilities.base64EncodeWebSafe(JSON.stringify(u),Utilities.Charset.UTF_8);
+  return {token:body+'.'+accessMac_(body,key),name:name,actor:u.actor,admin:old.role==='admin',persistent:true};
+}
 // [v2.6 변경 A/B/C] A~J 유지, 분류는 제목으로 찾은 확장 열에만 기록.
 function saveItem(p, accessToken){return locked_(function(){
   admin_(auth_(accessToken));
@@ -782,13 +911,13 @@ function deleteUnusedItem(p, accessToken){return locked_(function(){
 const MATERIAL_CATEGORIES=Object.freeze(['원장','기타 자재','확인 필요']);
 function category_(value){const c=String(value??'').trim()||'원장';if(!MATERIAL_CATEGORIES.includes(c))fail_('분류는 원장 / 기타 자재 / 확인 필요 중에서 선택하세요.');return c;}
 function itemSchema_(sh){
-  const headers=sh&&sh.getLastRow()?sh.getRange(1,1,1,Math.max(10,sh.getLastColumn())).getDisplayValues()[0]:CFG.ITEM_HEADERS.slice();
+  const headers=sh&&lastRow_(sh)?headRow_(sh,Math.max(10,lastCol_(sh))):CFG.ITEM_HEADERS.slice();
   if(headers.slice(0,10).join('|')!==CFG.ITEM_HEADERS.join('|'))fail_('품목 A~J열 제목이 기존 형식과 다릅니다.');
   const found=[];headers.forEach((h,i)=>{if(String(h).trim()==='분류')found.push(i);});
   if(found.length>1)fail_('품목에 분류 열 제목이 중복됩니다.');
   if(found.length)return {headers:headers,category:found[0],extra:itemExtra_(headers)};
   if(headers[10]&&String(headers[10]).trim())fail_('품목 K열에 다른 데이터가 있습니다. 백업 후 빈 열을 확보하세요. 기존 값을 덮어쓰지 않습니다.');
-  if(sh&&sh.getLastRow()>1&&rows_(sh,Math.max(11,headers.length)).some(r=>String(r[10]??'').trim()))fail_('품목 K열에 제목 없는 데이터가 있습니다. 먼저 확인하세요.');
+  if(sh&&lastRow_(sh)>1&&rows_(sh,Math.max(11,headers.length)).some(r=>String(r[10]??'').trim()))fail_('품목 K열에 제목 없는 데이터가 있습니다. 먼저 확인하세요.');
   headers[10]='분류';return {headers:headers,category:10,extra:itemExtra_(headers)};
 }
 /** v3.0 확장 열(크기·기본길이·주문코드·사진)은 제목으로 찾습니다. 없으면 -1. */
@@ -890,17 +1019,18 @@ function redirectPage_(base,sku,action){
     '<style>body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;background:#f3f5f4;color:#1d3633;display:flex;min-height:100vh;align-items:center;justify-content:center}'+
     '.box{max-width:360px;margin:20px;padding:28px;background:#fff;border-radius:16px;text-align:center;border:1px solid #dfe6e2}'+
     'a{display:block;margin-top:18px;padding:16px;border-radius:12px;background:#246a55;color:#fff;font-weight:700;font-size:18px;text-decoration:none}</style></head><body>'+
-    '<div class="box"><small>ARCHICELL / STOCK</small><h2>재고관리 앱으로 이동</h2><p>재고관리 주소가 바뀌었습니다. 아래 버튼을 누르세요.</p>'+
+    '<div class="box"><small>ARCHICELL 재고관리</small><h2>재고관리 앱으로 이동</h2><p>재고관리 주소가 바뀌었습니다. 아래 버튼을 누르세요.</p>'+
     (sku?'<p><b>'+htmlEsc_(sku)+'</b></p>':'')+
     '<a href="'+htmlEsc_(url)+'" target="_top">재고관리 열기</a></div>'+
     '<script>try{window.top.location.href='+JSON.stringify(url).replace(/</g,'\\u003c')+';}catch(e){}<\/script></body></html>';
-  return HtmlService.createHtmlOutput(html).setTitle('ARCHICELL 자재관리').addMetaTag('viewport','width=device-width, initial-scale=1');
+  return HtmlService.createHtmlOutput(html).setTitle('ARCHICELL 재고관리').addMetaTag('viewport','width=device-width, initial-scale=1');
 }
 /** 새 앱 주소에서 보내는 요청 통로. 허용된 기능만 실행합니다. */
 function doPost(e){
   const api={loginCompany:loginCompany,getDashboard:getDashboard,saveTransaction:saveTransaction,adjustStock:adjustStock,
     cancelTransaction:cancelTransaction,updateLogMemo:updateLogMemo,getHistory:getHistory,saveItem:saveItem,renameItemCode:renameItemCode,deleteUnusedItem:deleteUnusedItem,
-    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto,uiMutate:uiMutate};
+    cutStock:cutStock,uploadPhoto:uploadPhoto,saveItemAll:saveItemAll,setItemPhoto:setItemPhoto,uiMutate:uiMutate,
+    correctTransaction:correctTransaction,switchWorker:switchWorker};
   let out;
   try{
     const raw=String(e&&e.postData&&e.postData.contents||'');
@@ -1008,13 +1138,14 @@ function uploadPhoto(p, accessToken){
   }catch(e){photoDriveFail_(e);}
   if(!file||!file.getSize())fail_('사진 파일이 비어 있습니다. 다른 사진으로 다시 시도하세요.');
   // 로그인하지 않은 직원 휴대폰에서도 보이도록 '링크가 있는 사람 보기'로 둡니다. (이 사진 파일 하나만 공유)
-  try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){}
+  // v4.0 공유 설정이 막혀 있으면(회사 계정의 외부 공유 제한 등) shared:false 로 알려 화면에서 안내합니다.
+  let shared=true;try{file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);}catch(e){shared=false;}
   const url='https://drive.google.com/thumbnail?id='+file.getId()+'&sz=w1600';
   return locked_(function(){
     const raw=rows_(sh,schema.headers.length),index=raw.findIndex(r=>normalizeCode_(r[0])===item.code);
     if(index<0)fail_('품목 행을 찾지 못했습니다.');
     sh.getRange(index+2,schema.extra.photo+1).setValue(url);SpreadsheetApp.flush();
-    return {ok:true,code:item.code,photo:url};
+    return {ok:true,code:item.code,photo:url,shared:shared};
   });
 }
 
@@ -1219,8 +1350,10 @@ function adjustMany_(code,counts,stockVersion,u,rid){return locked_(function(){
   return entries.length;
 });}
 /* ===== v3.8 UI: 기존 저장 함수를 그대로 사용하고 확정 데이터를 같은 응답에 반환 ===== */
-function uiMutate(method, payload, accessToken) {
+function uiMutate(method, payload, accessToken, opt) {
+  const t0 = Date.now();
   const allowed = {
+    correctTransaction: correctTransaction,
     saveTransaction: saveTransaction, cutStock: cutStock,
     cancelTransaction: cancelTransaction, adjustStock: adjustStock, updateLogMemo: updateLogMemo,
     saveItemAll: saveItemAll, saveItem: saveItem,
@@ -1231,10 +1364,13 @@ function uiMutate(method, payload, accessToken) {
   // 각 기존 함수에서 인증·권한·중복요청·재고 검증을 수행합니다.
   // 여기서 추가 잠금을 잡지 않습니다(기존 함수의 잠금과 중첩 방지).
   const result = allowed[method](payload, accessToken);
+  const saveMs = Date.now() - t0;
+  // v4.0 빠른 저장: 저장 결과(서버가 확정한 재고)만 먼저 돌려주고, 전체 현황은 화면이 따로 다시 읽습니다.
+  if (opt && opt.fast === true) return {result: result, dashboard: null, refreshError: false, fast: true, saveMs: saveMs, serverMs: saveMs};
   try {
-    return {result: result, dashboard: getDashboard(accessToken), refreshError: false};
+    return {result: result, dashboard: getDashboard(accessToken), refreshError: false, saveMs: saveMs, serverMs: Date.now() - t0};
   } catch (e) {
     // 저장 후 조회 오류를 저장 실패로 보내면 중복 입력을 유발할 수 있습니다.
-    return {result: result, dashboard: null, refreshError: true};
+    return {result: result, dashboard: null, refreshError: true, saveMs: saveMs, serverMs: Date.now() - t0};
   }
 }
