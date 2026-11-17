@@ -12,6 +12,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <style data-shell>
   html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif}
   .boot{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;box-sizing:border-box}
@@ -33,7 +35,12 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v2.9.8 (불러오는 표시를 동그라미 대신 가는 선으로 · v2.9.7: QR 스캔 즉시 열기 · 구글 시트 큰 버튼 줄)
+/* ARCHICELL 재고관리 앱 껍데기 v3.0 (화면을 기기에 저장해 두고 바로 열기 · 새 버전은 뒤에서 확인)
+   - v3.0: 마지막으로 받은 화면(Index.html)을 이 기기에 저장해 두고, 다음부터는 저장본을 바로 띄웁니다.
+           그동안 뒤에서 최신 화면을 받아 비교하고, 바뀌었으면 아래쪽에 '새 화면 적용' 버튼을 보여 줍니다.
+           재고 숫자는 저장하지 않습니다(화면이 열리면 항상 서버에서 최신 재고를 다시 읽음).
+           저장본이 열리지 않으면 저장본을 지우고 서버에서 새로 받습니다.
+   이전: v2.9.8 (불러오는 표시를 동그라미 대신 가는 선으로 · v2.9.7: QR 스캔 즉시 열기 · 구글 시트 큰 버튼 줄)
    - 화면(Index.html)은 Google Apps Script에서 받아와 이 주소에서 실행합니다.
    - 로그인 정보는 이 주소에 3곳(브라우저 저장소·보조 저장소·쿠키)으로 나눠 보관해
      창을 닫거나 앱을 껐다 켜도 유지됩니다. 직접 '나가기'를 누를 때만 지워집니다.
@@ -144,8 +151,12 @@ function runScript(old){
   s.textContent = old.textContent;
   return s;
 }
-function mount(html){
+function mount(html, sku, action){
   const doc = new DOMParser().parseFromString(html, 'text/html');
+  // v3.0: 저장본 화면은 품목코드 없이 받은 것이라, 주소의 sku·action을 여기서 넣어 줍니다.
+  const si = doc.getElementById('initial-sku'), ai = doc.getElementById('initial-action');
+  if (si) si.setAttribute('value', sku || '');
+  if (ai) ai.setAttribute('value', action || '');
   document.title = doc.title || document.title;
   document.querySelectorAll('style[data-shell]').forEach(e => e.remove());
   const headScripts = [];
@@ -387,25 +398,71 @@ function showDiag(){
   box.appendChild(line);
 }
 
+/* ---------- v3.0 화면 저장본 ---------- */
+const APP_CACHE = 'archicell-shell-app-v1';
+function looksLikeApp(html){ return typeof html === 'string' && html.length > 5000 && /id=["']company-login["']/.test(html); }
+function cacheGet(){
+  try{ const c = JSON.parse(localStorage.getItem(APP_CACHE) || 'null'); return c && looksLikeApp(c.html) ? c : null; }catch(e){ return null; }
+}
+function cachePut(html){
+  try{ localStorage.setItem(APP_CACHE, JSON.stringify({html: html, at: Date.now()})); return true; }
+  catch(e){ try{ localStorage.removeItem(APP_CACHE); }catch(x){} return false; }   // 저장 공간이 모자라면 저장본 없이 동작
+}
+function cacheDrop(){ try{ localStorage.removeItem(APP_CACHE); }catch(e){} }
+/* 화면은 품목코드 없이 받아서 저장합니다(어느 품목 QR로 열어도 같은 저장본을 씀). */
+async function fetchApp(){
+  const r = await fetch(EXEC + '?format=app', {redirect:'follow', cache:'no-store'});
+  if (!r.ok) throw new Error('응답 ' + r.status);
+  const html = await r.text();
+  if (!looksLikeApp(html)) throw new Error('화면 형식이 다릅니다');
+  return html;
+}
+/* 뒤에서 받은 화면이 저장본과 다르면, 다음 실행부터 쓰도록 저장하고 바로 적용할 수 있는 버튼을 보여 줍니다. */
+function offerUpdate(){
+  if (document.getElementById('ac-update')) return;
+  const b = document.createElement('button');
+  b.id = 'ac-update'; b.type = 'button';
+  b.textContent = '새 화면이 준비되었습니다 · 적용';
+  b.style.cssText = 'position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);transform:translateX(-50%);z-index:99990;' +
+    'padding:10px 16px;border:0;border-radius:8px;background:#16181b;color:#fff;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;' +
+    'box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer';
+  b.onclick = () => {
+    // 저장 중이면(화면 쪽 busy·pending) 끝난 뒤에 누르도록 안내
+    try{ if ((typeof busy !== 'undefined' && busy) || (typeof pending !== 'undefined' && pending)){ b.textContent = '저장이 끝난 뒤 다시 눌러 주세요'; return; } }catch(e){}
+    location.reload();
+  };
+  document.body.appendChild(b);
+}
+
 (async function boot(){
   await restoreAuth();
   const p = new URLSearchParams(location.search);
-  const q = new URLSearchParams({format:'app'});
-  const sku = (p.get('sku') || '').slice(0, 40), action = p.get('action') || '';
-  if (sku) q.set('sku', sku);
-  if (action === 'in' || action === 'out') q.set('action', action);
+  const sku = (p.get('sku') || '').slice(0, 40), act = p.get('action') || '';
+  const action = (act === 'in' || act === 'out') ? act : '';
+  const cached = cacheGet();
+  if (cached){
+    let ok = false;
+    try { mount(cached.html, sku, action); ok = true; }
+    catch (e) { cacheDrop(); }
+    if (ok){
+      // 저장본으로 열었으면, 뒤에서 최신 화면을 받아 비교만 합니다.
+      fetchApp().then(html => {
+        if (html !== cached.html){ cachePut(html); offerUpdate(); }
+      }).catch(() => {});
+      return;
+    }
+    location.reload();   // 저장본이 깨졌으면 지운 뒤 처음부터 다시
+    return;
+  }
   let html;
-  try {
-    const r = await fetch(EXEC + '?' + q.toString(), {redirect:'follow', cache:'no-store'});
-    if (!r.ok) throw new Error('응답 ' + r.status);
-    html = await r.text();
-    if (!/id=["']company-login["']/.test(html)) throw new Error('화면 형식이 다릅니다');
-  } catch (e) {
+  try { html = await fetchApp(); }
+  catch (e) {
     fail('재고 화면을 불러오지 못했습니다. 인터넷 연결을 확인하세요. (' + e.message + ')');
     return;
   }
-  try { mount(html); }
-  catch (e) { fail('화면을 여는 중 오류가 났습니다: ' + e.message); }
+  cachePut(html);
+  try { mount(html, sku, action); }
+  catch (e) { cacheDrop(); fail('화면을 여는 중 오류가 났습니다: ' + e.message); }
 })();
 </script>
 </body>
