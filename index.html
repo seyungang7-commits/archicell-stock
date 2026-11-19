@@ -35,7 +35,10 @@
   <button id="retry" hidden onclick="location.reload()">다시 시도</button>
 </div>
 <script>
-/* ARCHICELL 재고관리 앱 껍데기 v3.0 (화면을 기기에 저장해 두고 바로 열기 · 새 버전은 뒤에서 확인)
+/* ARCHICELL 재고관리 앱 껍데기 v3.1 (서버 호출 제한 시간·오류 문구 · 새 화면은 손대기 전이면 바로 적용)
+   - v3.1: 서버 호출이 60초(사진 120초) 넘게 걸리면 끊고 오류로 알립니다. 구글 서버가 바빠 JSON이 아닌 응답을 주면
+           'Load failed' 대신 알아볼 수 있는 문구로 바꿉니다. 새 화면이 뒤에서 도착했을 때 앱을 연 지 10초 안이고
+           아직 아무것도 누르지 않았으면 바로 적용하고, 아니면 아래쪽에 한 줄 버튼(✕로 닫기 가능)을 보여 줍니다.
    - v3.0: 마지막으로 받은 화면(Index.html)을 이 기기에 저장해 두고, 다음부터는 저장본을 바로 띄웁니다.
            그동안 뒤에서 최신 화면을 받아 비교하고, 바뀌었으면 아래쪽에 '새 화면 적용' 버튼을 보여 줍니다.
            재고 숫자는 저장하지 않습니다(화면이 열리면 항상 서버에서 최신 재고를 다시 읽음).
@@ -122,10 +125,16 @@ async function restoreAuth(){
 /* ---------- google.script.run 대체 (서버 doPost 호출) ---------- */
 (function shim(){
   function call(fn, args, ok, fail){
-    fetch(EXEC, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({fn:fn, args:args})})
-      .then(r => { if (!r.ok) throw new Error('서버 응답 오류 (' + r.status + ')'); return r.json(); })
-      .then(d => { if (d && d.ok) { ok && ok(d.result); } else { const e = new Error((d && d.error) || '알 수 없는 오류'); fail ? fail(e) : console.error(e); } })
-      .catch(err => { const e = new Error('네트워크 연결을 확인하세요. ' + (err && err.message || '')); fail ? fail(e) : console.error(e); });
+    const big = fn === 'uploadPhoto' || (fn === 'uiMutate' && args[0] === 'uploadPhoto');
+    const ctl = window.AbortController ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), big ? 120000 : 60000) : 0;
+    fetch(EXEC, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({fn:fn, args:args}), signal: ctl ? ctl.signal : undefined})
+      .then(r => { if (!r.ok) throw new Error('서버 응답 오류 (' + r.status + ')'); return r.text(); })
+      .then(t => { let d; try { d = JSON.parse(t); } catch (x) { throw new Error('서버가 바빠 응답을 읽지 못했습니다'); } return d; })
+      .then(d => { clearTimeout(timer); if (d && d.ok) { ok && ok(d.result); } else { const e = new Error((d && d.error) || '알 수 없는 오류'); fail ? fail(e) : console.error(e); } })
+      .catch(err => { clearTimeout(timer);
+        const why = err && err.name === 'AbortError' ? '응답 시간 초과' : (err && err.message || '');
+        const e = new Error('네트워크 연결을 확인하세요. ' + why); fail ? fail(e) : console.error(e); });
   }
   function runner(ok, fail){
     return new Proxy({}, {get(_, name){
@@ -418,20 +427,32 @@ async function fetchApp(){
   return html;
 }
 /* 뒤에서 받은 화면이 저장본과 다르면, 다음 실행부터 쓰도록 저장하고 바로 적용할 수 있는 버튼을 보여 줍니다. */
+const BOOT_AT = Date.now();
+let touched = false;
+['pointerdown','keydown','touchstart'].forEach(ev => window.addEventListener(ev, () => { touched = true; }, {capture:true, passive:true, once:true}));
+function appBusy(){
+  try{ return (typeof busy !== 'undefined' && busy) || (typeof pending !== 'undefined' && pending) || (typeof sheetOpen !== 'undefined' && sheetOpen); }catch(e){ return false; }
+}
 function offerUpdate(){
+  // v3.1: 연 지 10초 안이고 아직 아무것도 누르지 않았으면 바로 새 화면으로 다시 엽니다.
+  if (!touched && Date.now() - BOOT_AT < 10000 && !appBusy()){ location.reload(); return; }
   if (document.getElementById('ac-update')) return;
-  const b = document.createElement('button');
-  b.id = 'ac-update'; b.type = 'button';
-  b.textContent = '새 화면이 준비되었습니다 · 적용';
-  b.style.cssText = 'position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);transform:translateX(-50%);z-index:99990;' +
-    'padding:10px 16px;border:0;border-radius:8px;background:#16181b;color:#fff;font:600 14px/1.3 -apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;' +
-    'box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer';
-  b.onclick = () => {
-    // 저장 중이면(화면 쪽 busy·pending) 끝난 뒤에 누르도록 안내
-    try{ if ((typeof busy !== 'undefined' && busy) || (typeof pending !== 'undefined' && pending)){ b.textContent = '저장이 끝난 뒤 다시 눌러 주세요'; return; } }catch(e){}
+  const box = document.createElement('div');
+  box.id = 'ac-update';
+  box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:99990;display:flex;justify-content:center;pointer-events:none';
+  box.innerHTML = '<div style="display:flex;align-items:center;gap:4px;max-width:100%;padding:4px 4px 4px 14px;border-radius:10px;background:#16181b;color:#fff;' +
+    'font:600 14px/1.3 -apple-system,BlinkMacSystemFont,\'Malgun Gothic\',sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25);pointer-events:auto">' +
+    '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">새 화면이 준비되었습니다</span>' +
+    '<button type="button" data-a="go" style="font:inherit;white-space:nowrap;padding:8px 12px;border:0;border-radius:8px;background:#fff;color:#000;cursor:pointer">적용</button>' +
+    '<button type="button" data-a="x" aria-label="닫기" style="font:inherit;padding:8px 10px;border:0;background:transparent;color:#bbb;cursor:pointer">✕</button></div>';
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.a === 'x'){ box.remove(); return; }
+    // 저장 중이거나 입출고 창이 열려 있으면 끝난 뒤에 누르도록 안내
+    if (appBusy()){ box.querySelector('span').textContent = '저장·입력이 끝난 뒤 눌러 주세요'; return; }
     location.reload();
-  };
-  document.body.appendChild(b);
+  });
+  document.body.appendChild(box);
 }
 
 (async function boot(){

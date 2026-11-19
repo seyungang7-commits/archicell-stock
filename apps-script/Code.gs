@@ -1,3 +1,4 @@
+// ARCHICELL Code v4.3 (v4.2 + 조회는 잠그지 않음 · 데이터 번호로 바뀐 것만 다시 받기 · 잠금 대기 오류 문구)
 // ARCHICELL Code v4.2 (v4.1 + 사진 폴더를 못 찾으면 새로 만들기)
 // ARCHICELL Code v4.1 (v4.0 + 조회 속도: 시트마다 한 번만 읽기)
 // ARCHICELL Code v4.0 (v3.13 + 본인 기록 판정 · 작업자 변경 · 기록 정정 · 기록 나눠 보기 · 처리 시간 측정)
@@ -96,10 +97,22 @@ function onOpen() {
     .addItem('길이 관리 전환 (v3, 1회)','migrateLengthsV3_').addToUi();
 }
 function fail_(s) { throw new Error('[확인] ' + s); }
+/* v4.3 저장 잠금: 저장·수정만 차례대로 처리합니다(조회는 잠그지 않음).
+ * 기다리다 못 잡으면 아무것도 저장하지 않고 '[확인]' 오류로 알립니다(화면은 저장 안 됨으로 처리).
+ * 끝나면 데이터 번호(stamp)를 바꿔, 다른 기기가 다음 확인 때 전체 현황을 다시 받게 합니다. */
 function locked_(fn) {
-  const lock=LockService.getScriptLock(); lock.waitLock(25000);
-  try { return fn(); } finally { lock.releaseLock(); }
+  const lock=LockService.getScriptLock();
+  if(!lock.tryLock(20000))fail_('다른 저장이 처리 중이라 기다리다 멈췄습니다. 저장되지 않았으니 잠시 후 다시 시도하세요.');
+  try { return fn(); } finally { bumpStamp_(); lock.releaseLock(); }
 }
+/* v4.3 데이터 번호: 저장·시트 수정 때마다 바뀝니다. 화면은 이 번호가 같으면 전체 현황을 다시 받지 않습니다.
+ * 캐시가 비면 새 번호를 만들어 한 번 전체를 다시 받게 되므로 틀린 값이 남지 않습니다. */
+const STAMP_KEY='archicell-data-stamp-v1';
+function stamp_(){
+  try{const c=CacheService.getScriptCache();let v=c.get(STAMP_KEY);if(!v){v='s'+Date.now();c.put(STAMP_KEY,v,21600);}return v;}
+  catch(e){return 's'+Date.now();}
+}
+function bumpStamp_(){try{CacheService.getScriptCache().put(STAMP_KEY,'s'+Date.now()+'-'+Math.floor(Math.random()*1e6),21600);}catch(e){}}
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
 /** 품목코드 변경 이력은 추가만 합니다. 이전 QR 코드는 계속 새 코드로 연결됩니다. */
 function ensureRenameSheet_(ss){
@@ -293,7 +306,7 @@ function auth_(token){
   let u;try{u=decodeAccess_(token,false);}catch(e){fail_('접속 만료: 회사 비밀번호와 이름으로 다시 접속하세요.');}
   return {name:u.name,email:u.actor,admin:u.role==='admin'};
 }
-function loginCompany(p){return locked_(function(){
+function loginCompany(p){return (function(){  // v4.3: 시트를 건드리지 않으므로 저장 잠금을 잡지 않습니다
   p=p||{};const cfg=accessConfig_(),cache=CacheService.getScriptCache();
   // 비밀번호 대입 시도 제한. 실패 누적은 전체 앱에 적용되며 잠시 후 해제됩니다.
   const windowKey='access-fails-'+Math.floor(Date.now()/300000);
@@ -311,7 +324,7 @@ function loginCompany(p){return locked_(function(){
   const key=accessKey_(),u={name:name,role:role,actor:actor,persistent:true,rev:accessMac_(password,key)};
   const body=Utilities.base64EncodeWebSafe(JSON.stringify(u),Utilities.Charset.UTF_8);
   return {token:body+'.'+accessMac_(body,key),name:name,actor:actor,admin:role==='admin',persistent:true};
-});}
+})();}
 
 function admin_(u){if(!u.admin)fail_('관리자만 실행할 수 있습니다.');}
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
@@ -467,12 +480,16 @@ function stateRead_(){
   return {ss:ss,logs:logs,items:items,logSchema:logData.schema,aliases:aliases,directAliases:direct};
 }
 // [v2.6 변경] 분류/단위 또는 코드 정규화 호환. 자세한 차이는 변경내용.diff 참조.
-function getDashboard(accessToken){const t0=Date.now();return locked_(function(){
-  const user=auth_(accessToken),t1=Date.now(),s=state_(),canceled=canceledSet_(s);
+/* v4.3 조회는 잠그지 않습니다(읽기만 하므로 안전 · 저장은 잠금 안에서 최신 시트를 다시 읽어 검증).
+ * known(화면이 가진 데이터 번호)이 지금 번호와 같으면 시트를 읽지 않고 unchanged만 돌려줍니다. */
+function getDashboard(accessToken,known){const t0=Date.now();
+  const user=auth_(accessToken),stamp=stamp_();
+  if(known&&String(known)===stamp)return {unchanged:true,stamp:stamp,timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss'),serverMs:Date.now()-t0};
+  const t1=Date.now(),s=state_(),canceled=canceledSet_(s);
   const recent=[];for(let k=s.logs.length-1;k>=0&&recent.length<100;k--)recent.push(logView_(s.logs[k],s,user,canceled,k));
   return {items:s.items,recent:recent,aliases:Object.assign({},s.aliases),user:user,appUrl:publicUrl_()||ScriptApp.getService().getUrl()||'',warnings:user.admin?dashboardWarnings_(s):[],timestamp:Utilities.formatDate(new Date(),'Asia/Seoul','yyyy-MM-dd HH:mm:ss'),
-    logCount:s.logs.length,serverMs:Date.now()-t0,waitMs:t1-t0};  // v4.0 처리 시간(잠금 대기 포함)·기록 줄 수
-});}
+    logCount:s.logs.length,stamp:stamp,serverMs:Date.now()-t0,waitMs:t1-t0};  // v4.0 처리 시간·기록 줄 수 · v4.3 데이터 번호
+}
 function canceledSet_(s){return new Set(s.logs.filter(r=>r[4]==='취소').map(r=>String(r[10])));}
 /** 화면에 보내는 기록 한 줄. v3.12: ymd(연도 포함 처리일)·workDate(작업일) 추가, 기존 date 형식(MM-dd HH:mm:ss)은 유지. */
 /** v4.0 본인 기록: 같은 접속(작업자계정)이거나 작업자 이름이 같으면 본인 기록입니다. */
@@ -497,7 +514,7 @@ function logView_(r,s,user,canceled,index){
  *  p: {from,to,by, type,operator,q, hideCanceled,hideBase, limit,offset}
  *  - limit을 보내지 않으면 예전처럼 최대 3,000건을 한 번에 보냅니다(예전 화면 호환).
  *  - matched·summary는 조건에 맞는 전체 기준입니다(지금 보낸 쪽수와 무관). 입고·출고 합계는 취소된 기록을 뺍니다. */
-function getHistory(p, accessToken){const t0=Date.now();return locked_(function(){
+function getHistory(p, accessToken){const t0=Date.now();return (function(){  // v4.3: 조회는 잠그지 않음
   const user=auth_(accessToken),s=state_(),canceled=canceledSet_(s);p=p||{};
   const from=ymdArg_(p.from),to=ymdArg_(p.to),by=p.by==='work'?'work':'done';
   const paged=!(p.limit===undefined||p.limit===null||p.limit==='');
@@ -530,7 +547,7 @@ function getHistory(p, accessToken){const t0=Date.now();return locked_(function(
   const next=offset+out.length;
   return {rows:out,matched:matched,limited:matched>next,offset:offset,nextOffset:matched>next?next:null,from:from,to:to,by:by,total:s.logs.length,
     summary:{'in':sum['입고'],out:sum['출고'],other:other,hiddenCancel:hidCancel,hiddenBase:hidBase},serverMs:Date.now()-t0};
-});}
+})();}
 /** 검색어 비교용: 공백을 없애고 30*60 · 30×60 · 30X60 을 30x60 으로 맞춥니다. */
 function histNorm_(v){return String(v||'').toLowerCase().replace(/\s+/g,'').replace(/[x×*]/g,'x');}
 function ymdArg_(v){const t=String(v||'').trim();if(!t)return '';if(!/^\d{4}-\d{2}-\d{2}$/.test(t))fail_('날짜는 2026-11-06 형식으로 입력하세요.');return t;}
@@ -1072,6 +1089,7 @@ function renameCodeFromSheet_(){
  *  - 쓸 수 없는 코드(형식 오류·중복·예전 코드)는 원래대로 되돌리고 이유를 알려줌
  *  - 다른 칸(품목명·크기·길이·주문코드·사진·위치 등)은 앱이 열릴 때마다 시트를 그대로 읽으므로 따로 할 일이 없음 */
 function onEdit(e){
+  bumpStamp_();  // v4.3 시트를 직접 고쳐도 열린 화면이 다음 확인 때 새로 받습니다
   try{
     if(!e||!e.range)return;
     const range=e.range,sh=range.getSheet();

@@ -3,11 +3,15 @@
 구글 시트 "ARHCICELL 공장 재고관리"의 확장 프로그램 → Apps Script에 들어가는 코드입니다.
 이 폴더는 보관용이며, GitHub Pages 앱(index.html)은 이 파일을 직접 쓰지 않습니다.
 
-## 지금 들어 있는 버전 (2026-11-17)
-- `Code.gs` — 서버 코드 **v4.2** (v4.1 + 사진 폴더를 못 찾으면 새로 만들기 / v4.1: 화면을 열 때 시트마다 한 번만 읽음)
-- `Index.html` — 화면 코드 **v4.1** (저장 먼저 반영 · 직원용 간단 화면 · 라벨 배치 변경 / v4.0: 화면 전체 정리 · 중복 저장 방지)
-- 저장소 맨 위 `index.html`(앱 껍데기) — **v3.0** (한 번 받은 화면을 기기에 저장해 두고 다음부터 바로 열기)
+## 지금 들어 있는 버전 (2026-11-19)
+- `Code.gs` — 서버 코드 **v4.3** (조회는 잠그지 않음 · 데이터 번호로 바뀐 것만 다시 받기 · 잠금 대기 오류 문구 / v4.2: 사진 폴더 자동 생성)
+- `Index.html` — 화면 코드 **v4.4** (10초 확인은 번호만 · 실패 시 5→15→30→60초 재시도 · 연결 오류 문구 / v4.3: 10초 확인 · 초 단위 시각) — **Code v4.3과 함께 적용**
+- 저장소 맨 위 `index.html`(앱 껍데기) — **v3.1** (서버 호출 제한 시간 · 오류 문구 · 새 화면 바로 적용)
 - 지난 버전 설명은 `CHANGELOG.md`, 지난 파일은 `archive/`에 있습니다.
+
+## 동시 저장 검증 및 미리보기
+- `node apps-script/tests/concurrency-load.js` — 실제 `saveTransaction` 및 `locked_` 코드를 Node.js worker 12개에서 실행해 동시 출고, 재고 부족 거절, 같은 요청ID 재시도를 확인합니다. 시트는 인메모리 모형이므로 Google Sheets 지연·Apps Script 할당량을 측정하지는 않습니다.
+- `node apps-script/tests/build-live-preview.js <출력 HTML 경로>` — 실제 화면 코드에 예시 재고를 연결한 로컬 전용 미리보기 HTML을 생성합니다. 미리보기는 Google Sheets에 저장하지 않습니다.
 
 - `QRLib`, `appsscript.json`은 Apps Script에 있는 그대로 사용합니다.
 
